@@ -8,10 +8,7 @@ import {
   TextField,
   Box,
   Typography,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  Select,
+  Autocomplete,
 } from '@mui/material';
 import { Client, Session } from '../types';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
@@ -31,18 +28,20 @@ interface AddSessionModalProps {
 }
 
 const AddSessionModal: React.FC<AddSessionModalProps> = ({ open, onClose, onAdd, clients }) => {
-  const [selectedClient, setSelectedClient] = useState<string>('');
+  const [clientName, setClientName] = useState<string>('');
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState<Date | null>(null);
   const [duration, setDuration] = useState('60');
   const [error, setError] = useState<string | null>(null);
 
+  const clientOptions = clients.map(c => c.name);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
     // Validation
-    if (!selectedClient) {
-      setError('Please select a client');
+    if (!clientName.trim()) {
+      setError('Please enter a client name');
       return;
     }
     if (!selectedDate) {
@@ -58,11 +57,9 @@ const AddSessionModal: React.FC<AddSessionModalProps> = ({ open, onClose, onAdd,
       return;
     }
 
-    const client = clients.find(c => c.id === selectedClient);
-    if (!client) {
-      setError('Invalid client selected');
-      return;
-    }
+    // Try to find client by name, or use the manually entered name
+    const client = clients.find(c => c.name.toLowerCase() === clientName.toLowerCase());
+    const clientId = client ? client.id : `manual-${Date.now()}`;
 
     // Combine date and time
     const sessionTime = new Date(selectedTime);
@@ -71,15 +68,15 @@ const AddSessionModal: React.FC<AddSessionModalProps> = ({ open, onClose, onAdd,
     sessionDate.setMinutes(sessionTime.getMinutes());
 
     onAdd({
-      clientId: selectedClient,
-      clientName: client.name,
+      clientId,
+      clientName: clientName.trim(),
       date: sessionDate.toISOString().split('T')[0],
       time: sessionTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       duration: Number(duration),
     });
 
     // Reset form
-    setSelectedClient('');
+    setClientName('');
     setSelectedDate(null);
     setSelectedTime(null);
     setDuration('60');
@@ -98,21 +95,26 @@ const AddSessionModal: React.FC<AddSessionModalProps> = ({ open, onClose, onAdd,
             </Typography>
           )}
           <Box sx={{ display: 'grid', gap: 2 }}>
-            <FormControl fullWidth>
-              <InputLabel>Client</InputLabel>
-              <Select
-                value={selectedClient}
-                label="Client"
-                onChange={(e) => setSelectedClient(e.target.value)}
-                required
-              >
-                {clients.map((client) => (
-                  <MenuItem key={client.id} value={client.id}>
-                    {client.name}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+            <Autocomplete
+              freeSolo
+              options={clientOptions}
+              value={clientName}
+              onChange={(event, newValue) => {
+                setClientName(newValue || '');
+              }}
+              inputValue={clientName}
+              onInputChange={(event, newInputValue) => {
+                setClientName(newInputValue);
+              }}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Client Name"
+                  placeholder="Enter or select client name"
+                  required
+                />
+              )}
+            />
 
             <LocalizationProvider dateAdapter={AdapterDateFns}>
               <DatePicker

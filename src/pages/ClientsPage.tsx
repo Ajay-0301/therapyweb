@@ -6,7 +6,6 @@ import {
   ToggleButtonGroup,
   ToggleButton,
   Button,
-  Grid,
 } from '@mui/material';
 import { Add as AddIcon } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
@@ -14,7 +13,6 @@ import SearchBar from '../components/SearchBar';
 import ClientCard from '../components/ClientCard';
 import AddClientModal from '../components/AddClientModal';
 import { AppContext } from '../context/AppContext';
-import { Client } from '../types';
 
 const ClientsPage: React.FC = () => {
   const navigate = useNavigate();

@@ -5,7 +5,6 @@ import {
   Box,
   Typography,
   Paper,
-  Grid,
   Button,
   IconButton,
   List,
@@ -161,7 +160,7 @@ const CalendarPage: React.FC = () => {
                   navigate(`/clients/${session.clientId}`);
                 }}
               >
-                {session.time} - {session.clientName}
+                {session.time} - {session.clientName} ({session.duration}m)
               </Typography>
             ))}
             {/* Follow-up sessions */}

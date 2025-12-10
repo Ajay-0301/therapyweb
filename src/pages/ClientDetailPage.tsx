@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useParams, useLocation } from 'react-router-dom';
-import { Box, Container, Typography, CircularProgress } from '@mui/material';
+import { Box, Container, Typography } from '@mui/material';
 import ClientDetailView from '../components/ClientDetailView';
 import { useApp } from '../context/AppContext';
 import { Client } from '../types';
