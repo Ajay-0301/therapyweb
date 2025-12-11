@@ -15,10 +15,12 @@ interface AppContextType {
   clients: Client[];
   sessions: Session[];
   addClient: (client: Omit<Client, 'id'>) => void;
-  addSession: (session: Omit<Session, 'id'>) => void;
+  // returns created session id
+  addSession: (session: Omit<Session, 'id'>) => string;
   updateClient: (client: Client) => void;
   incrementClientSessionCount: (clientId: string, delta?: number) => void;
   updateSession: (sessionId: string, notes: string, followUp: { date: string; notes: string }) => void;
+  deleteSession: (sessionId: string) => void;
 }
 
 export const AuthContext = createContext<AuthContextType | null>(null);
@@ -104,11 +106,49 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const addSession = (sessionData: Omit<Session, 'id'>) => {
+    // Find client and increment their sessionCount
+    const client = clients.find(c => c.id === sessionData.clientId);
+    const prevCount = client?.sessionCount || 0;
+    const newCount = prevCount + 1;
+
+    // Update client with new sessionCount and lastSession/upcomingSession
+    if (client) {
+      const updatedClient: Client = {
+        ...client,
+        sessionCount: newCount,
+        lastSession: sessionData.date || client.lastSession,
+        upcomingSession: sessionData.followUp?.date || client.upcomingSession
+      };
+      setClients(prev => prev.map(c => c.id === client.id ? updatedClient : c));
+      // If selectedClient matches, update it too
+      if (selectedClient?.id === client.id) setSelectedClient(updatedClient);
+    }
+
     const newSession: Session = {
       ...sessionData,
-      id: `session-${Date.now()}`, // Simple ID generation
+      id: `session-${Date.now()}`,
+      sessionNumber: newCount,
+      isFromCalendarModal: (sessionData as any).isFromCalendarModal || false,
     };
+
     setSessions(prevSessions => [...prevSessions, newSession]);
+    return newSession.id;
+  };
+
+  const deleteSession = (sessionId: string) => {
+    const sessionToDelete = sessions.find(s => s.id === sessionId);
+    if (!sessionToDelete) return;
+
+    // Remove session
+    setSessions(prev => prev.filter(s => s.id !== sessionId));
+
+    // If session had a sessionNumber, decrement client's sessionCount
+    const client = clients.find(c => c.id === sessionToDelete.clientId);
+    if (client) {
+      const updatedClient: Client = { ...client, sessionCount: Math.max(0, (client.sessionCount || 1) - 1) };
+      setClients(prev => prev.map(c => c.id === client.id ? updatedClient : c));
+      if (selectedClient?.id === client.id) setSelectedClient(updatedClient);
+    }
   };
 
   const updateSession = (sessionId: string, notes: string, followUp: { date: string; notes: string }) => {
@@ -151,8 +191,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         sessions,
         addClient,
         addSession,
-          updateClient,
-          incrementClientSessionCount,
+        deleteSession,
+        updateClient,
+        incrementClientSessionCount,
         updateSession
       }}
     >

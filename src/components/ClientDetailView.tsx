@@ -10,19 +10,23 @@ import {
   Card,
   CardContent,
   IconButton,
+  Snackbar,
+  Alert,
 } from '@mui/material';
-import { Edit as EditIcon, Save as SaveIcon } from '@mui/icons-material';
+import { Edit as EditIcon, Save as SaveIcon, Delete as DeleteIcon } from '@mui/icons-material';
 import { Client, Session } from '../types';
 import { DatePicker } from '@mui/x-date-pickers';
 import { LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import EventTag from './EventTag';
 
 interface ClientDetailViewProps {
   client: Client;
   sessions: Session[];
   onUpdateClient: (updatedClient: Client) => void;
   onUpdateSession: (sessionId: string, notes: string, followUp: { date: string; notes: string }) => void;
-  onAddSession: (session: Omit<Session, 'id'>) => void;
+  onAddSession: (session: Omit<Session, 'id'>) => string;
+  onDeleteSession?: (sessionId: string) => void;
 }
 
 const ClientDetailView: React.FC<ClientDetailViewProps> = ({
@@ -31,6 +35,7 @@ const ClientDetailView: React.FC<ClientDetailViewProps> = ({
   onUpdateClient,
   onUpdateSession,
   onAddSession,
+  onDeleteSession,
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editedClient, setEditedClient] = useState(client);
@@ -38,6 +43,10 @@ const ClientDetailView: React.FC<ClientDetailViewProps> = ({
   const [followUpDate, setFollowUpDate] = useState<Date | null>(null);
   const [followUpNotes, setFollowUpNotes] = useState('');
   const [showOnlyFollowUp, setShowOnlyFollowUp] = useState(false);
+  const [isEditingCount, setIsEditingCount] = useState(false);
+  const [countInput, setCountInput] = useState<number | ''>(client.sessionCount ?? sessions.filter(s => s.clientId === client.id).length);
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [createdSessionId, setCreatedSessionId] = useState<string | null>(null);
   const navigate = useNavigate();
 
   const handleSave = () => {
@@ -47,8 +56,11 @@ const ClientDetailView: React.FC<ClientDetailViewProps> = ({
 
   // Keep local editedClient in sync when parent prop changes (e.g. after update)
   useEffect(() => {
-    setEditedClient(client);
-  }, [client]);
+    // Only overwrite local edits when the user is NOT actively editing the profile
+    if (!isEditing) {
+      setEditedClient(client);
+    }
+  }, [client, isEditing]);
 
   const handleChangeSessionCount = (delta: number) => {
     const current = editedClient.sessionCount ?? sessions.filter(s => s.clientId === client.id).length;
@@ -56,6 +68,14 @@ const ClientDetailView: React.FC<ClientDetailViewProps> = ({
     const updated = { ...editedClient, sessionCount: next };
     setEditedClient(updated);
     onUpdateClient(updated);
+  };
+
+  const handleSaveCountInput = () => {
+    const value = typeof countInput === 'number' ? Math.max(0, Math.floor(countInput)) : 0;
+    const updated: Client = { ...editedClient, sessionCount: value };
+    setEditedClient(updated);
+    onUpdateClient(updated);
+    setIsEditingCount(false);
   };
 
   const handleSessionNotesSave = () => {
@@ -79,20 +99,33 @@ const ClientDetailView: React.FC<ClientDetailViewProps> = ({
       }
     };
 
-    // Call parent's onAddSession with all client details preserved
+    // Update only the client's session dates (do not overwrite chief complaints or HOPI)
+    // Use the stored `client` object so manual profile edits are not auto-saved.
     onUpdateClient({
-      ...editedClient, // Use editedClient instead of client to preserve all entered details
+      ...client,
       lastSession: today.toISOString().split('T')[0],
       upcomingSession: followUpDate.toISOString().split('T')[0]
     });
 
-    // Add the new session
-    onAddSession(newSession);
+    // Add the new session and capture id for undo
+    const createdId = onAddSession(newSession);
+
+    // Show undo snackbar
+    setCreatedSessionId(createdId);
+    setSnackbarOpen(true);
 
     // Clear only the session form fields, not the client details
     setSessionNotes('');
     setFollowUpDate(null);
     setFollowUpNotes('');
+  };
+
+  const handleUndo = () => {
+    if (createdSessionId && typeof onDeleteSession === 'function') {
+      onDeleteSession(createdSessionId);
+    }
+    setSnackbarOpen(false);
+    setCreatedSessionId(null);
   };
 
   return (
@@ -179,25 +212,33 @@ const ClientDetailView: React.FC<ClientDetailViewProps> = ({
             Sessions
           </Typography>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
-            <Typography>
-              Count: {editedClient.sessionCount ?? sessions.filter(session => session.clientId === client.id).length}
+            <Typography sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              Count:
+              {!isEditingCount ? (
+                <Box component="span" sx={{ fontWeight: 'bold', ml: 1 }}>{editedClient.sessionCount ?? sessions.filter(session => session.clientId === client.id).length}</Box>
+              ) : (
+                <TextField
+                  size="small"
+                  type="number"
+                  value={countInput}
+                  onChange={(e) => setCountInput(e.target.value === '' ? '' : Number(e.target.value))}
+                  inputProps={{ min: 0 }}
+                  sx={{ width: 100, ml: 1 }}
+                />
+              )}
             </Typography>
-            <Button
-              variant="outlined"
-              size="small"
-              onClick={() => handleChangeSessionCount(-1)}
-              aria-label="decrease-session-count"
-            >
-              -
-            </Button>
-            <Button
-              variant="contained"
-              size="small"
-              onClick={() => handleChangeSessionCount(1)}
-              aria-label="increase-session-count"
-            >
-              +
-            </Button>
+            {!isEditingCount ? (
+              <>
+                <Button variant="outlined" size="small" onClick={() => handleChangeSessionCount(-1)} aria-label="decrease-session-count">-</Button>
+                <Button variant="contained" size="small" onClick={() => handleChangeSessionCount(1)} aria-label="increase-session-count">+</Button>
+                <Button variant="text" size="small" onClick={() => { setIsEditingCount(true); setCountInput(editedClient.sessionCount ?? sessions.filter(s=>s.clientId===client.id).length); }}>Edit</Button>
+              </>
+            ) : (
+              <>
+                <Button variant="contained" size="small" onClick={handleSaveCountInput}>Save</Button>
+                <Button variant="outlined" size="small" onClick={() => { setIsEditingCount(false); setCountInput(editedClient.sessionCount ?? sessions.filter(s=>s.clientId===client.id).length); }}>Cancel</Button>
+              </>
+            )}
             {editedClient.upcomingSession && (
               <Typography
                 sx={{ ml: 2, cursor: 'pointer', color: 'success.main', textDecoration: 'underline' }}
@@ -218,6 +259,23 @@ const ClientDetailView: React.FC<ClientDetailViewProps> = ({
             Use + to record a session attended. Click the Next Session date to view only the follow-up date in history.
           </Typography>
         </Paper>
+        <Snackbar
+          open={snackbarOpen}
+          autoHideDuration={6000}
+          onClose={() => setSnackbarOpen(false)}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        >
+          <Alert
+            severity="info"
+            action={
+              <Button color="inherit" size="small" onClick={handleUndo}>
+                UNDO
+              </Button>
+            }
+          >
+            Session saved — undo?
+          </Alert>
+        </Snackbar>
       </Paper>
 
       {/* Chief Complaints */}
@@ -334,11 +392,31 @@ const ClientDetailView: React.FC<ClientDetailViewProps> = ({
             sessions.map((session) => (
               <Box key={session.id} sx={{ mb: 2 }}>
               <Card>
-                <CardContent>
-                  <Typography variant="subtitle1" gutterBottom>
+                <CardContent sx={{ position: 'relative' }}>
+                  <IconButton
+                    size="small"
+                    sx={{ position: 'absolute', right: 8, top: 8 }}
+                    onClick={() => {
+                      if (!onDeleteSession) return;
+                      const ok = window.confirm('Delete this session? This cannot be undone.');
+                      if (ok) onDeleteSession(session.id);
+                    }}
+                    aria-label={`delete-session-${session.id}`}
+                  >
+                    <DeleteIcon fontSize="small" />
+                  </IconButton>
+                  
+                  {/* Event Tag - Unified Pill Style */}
+                  <EventTag
+                    type={session.isFromCalendarModal ? 'calendar' : 'client'}
+                  >
+                    {session.clientName}
+                  </EventTag>
+
+                  <Typography variant="subtitle1" gutterBottom sx={{ mt: 1 }}>
                     Date: {session.date} | Time: {session.time}
                   </Typography>
-                  {session.notes && (
+                    {session.notes && (
                     <Typography variant="body2" color="text.secondary">
                         {session.notes}
                       </Typography>
@@ -346,12 +424,35 @@ const ClientDetailView: React.FC<ClientDetailViewProps> = ({
                     {session.followUp && (
                       <>
                         <Divider sx={{ my: 1 }} />
-                        <Typography variant="body2">
-                          Follow-up: {session.followUp.date}
+                        <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 0.5 }}>
+                          Follow-up Details
                         </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          {session.followUp.notes}
-                        </Typography>
+                        {session.isFromCalendarModal ? (
+                          <>
+                            <EventTag
+                              type="follow-up"
+                            >
+                              {editedClient.name} <strong>({session.duration || 0}m)</strong>
+                            </EventTag>
+                            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                              Date: {session.followUp.date}
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary">
+                              {session.followUp.notes}
+                            </Typography>
+                          </>
+                        ) : (
+                          <>
+                            <EventTag
+                              type="follow-up"
+                            >
+                              Follow-up: ({session.sessionNumber ?? editedClient.sessionCount ?? 0}) {editedClient.name}
+                            </EventTag>
+                            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                              {session.followUp.notes}
+                            </Typography>
+                          </>
+                        )}
                       </>
                     )}
                   </CardContent>

@@ -15,6 +15,7 @@ import {
 import { AppContext } from '../context/AppContext';
 import { Session } from '../types';
 import AddSessionModal from '../components/AddSessionModal';
+import EventTag from '../components/EventTag';
 import {
   ChevronLeft,
   ChevronRight,
@@ -48,13 +49,26 @@ const CalendarPage: React.FC = () => {
     const params = new URLSearchParams(location.search);
     const dateParam = params.get('date');
     if (dateParam) {
-      const dt = new Date(dateParam);
-      if (!isNaN(dt.getTime())) {
-        setSelectedDate(new Date(dt.getFullYear(), dt.getMonth(), dt.getDate()));
-        setCurrentDate(new Date(dt.getFullYear(), dt.getMonth(), 1));
+      // Parse dateParam as local YYYY-MM-DD to avoid timezone shifts
+      const parts = dateParam.split('-').map(Number);
+      if (parts.length === 3) {
+        const dt = new Date(parts[0], parts[1] - 1, parts[2]);
+        if (!isNaN(dt.getTime())) {
+          setSelectedDate(new Date(dt.getFullYear(), dt.getMonth(), dt.getDate()));
+          setCurrentDate(new Date(dt.getFullYear(), dt.getMonth(), 1));
+        }
       }
     }
   }, [location.search]);
+
+  // Helper to parse a YYYY-MM-DD date string into a local Date (avoids UTC parsing issues)
+  const parseDateLocal = (dateStr?: string | null) => {
+    if (!dateStr) return null;
+    const parts = dateStr.split('-').map(Number);
+    if (parts.length !== 3) return null;
+    const d = new Date(parts[0], parts[1] - 1, parts[2]);
+    return isNaN(d.getTime()) ? null : d;
+  };
 
   const daysInMonth = new Date(
     currentDate.getFullYear(),
@@ -79,6 +93,15 @@ const CalendarPage: React.FC = () => {
 
   const handleNextMonth = () => {
     setCurrentDate(new Date(currentDate.setMonth(currentDate.getMonth() + 1)));
+  };
+
+  // Helper to convert 24-hour time to 12-hour AM/PM format
+  const formatTimeToAMPM = (timeStr?: string | null) => {
+    if (!timeStr) return '';
+    const [hours, minutes] = timeStr.split(':').map(Number);
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    const displayHours = hours % 12 || 12;
+    return `${displayHours}:${String(minutes).padStart(2, '0')}${ampm}`;
   };
 
   const renderCalendarDays = () => {
@@ -108,10 +131,11 @@ const CalendarPage: React.FC = () => {
         day === today.getDate() &&
         currentDate.getMonth() === today.getMonth() &&
         currentDate.getFullYear() === today.getFullYear();
-      // sessions that have followUp on this day
+      // sessions that have followUp on this day (parse dates as local YYYY-MM-DD)
       const followUpSessionsForDay = sessions && sessions.filter((session: Session) => {
         if (!session.followUp?.date) return false;
-        const followUpDate = new Date(session.followUp.date);
+        const followUpDate = parseDateLocal(session.followUp.date);
+        if (!followUpDate) return false;
         return (
           followUpDate.getDate() === day &&
           followUpDate.getMonth() === currentDate.getMonth() &&
@@ -132,41 +156,56 @@ const CalendarPage: React.FC = () => {
               }
               setSelectedDate(new Date(currentDate.getFullYear(), currentDate.getMonth(), day));
             }}
-            sx={followUpSessionsForDay && followUpSessionsForDay.length ? { backgroundColor: 'success.light', color: 'success.contrastText' } : undefined}
           >
             <Typography>{day}</Typography>
-            {/* Regular sessions */}
-            {sessions && sessions.filter((session: Session) => {
-              const sessionDate = new Date(session.date);
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.3, width: '100%' }}>
+              {/* Regular sessions */}
+              {sessions && sessions.filter((session: Session) => {
+              const sessionDate = parseDateLocal(session.date);
+              if (!sessionDate) return false;
               return (
                 sessionDate.getDate() === day &&
                 sessionDate.getMonth() === currentDate.getMonth() &&
                 sessionDate.getFullYear() === currentDate.getFullYear()
               );
             }).map((session: Session) => (
-              <Typography 
-                key={session.id} 
-                variant="caption" 
-                color="primary" 
-                sx={{ 
+              <Box
+                key={session.id}
+                sx={{
                   display: 'block',
                   cursor: 'pointer',
-                  '&:hover': {
-                    textDecoration: 'underline'
-                  }
                 }}
                 onClick={(e) => {
                   e.stopPropagation();
                   navigate(`/clients/${session.clientId}`);
                 }}
               >
-                {session.time} - {session.clientName} ({session.duration}m)
-              </Typography>
+                {session.isFromCalendarModal ? (
+                  <EventTag
+                    type="calendar"
+                    onClick={(e: React.MouseEvent) => {
+                      e.stopPropagation();
+                      navigate(`/clients/${session.clientId}`);
+                    }}
+                  >
+                    {session.clientName} ({session.duration || 0}m) - {formatTimeToAMPM(session.time)}
+                  </EventTag>
+                ) : (
+                  <Typography
+                    variant="caption"
+                    color="textPrimary"
+                    sx={{ display: 'block', mb: 0.3 }}
+                  >
+                    {session.time} - {session.clientName}
+                  </Typography>
+                )}
+              </Box>
             ))}
-            {/* Follow-up sessions */}
-            {sessions && sessions.filter((session: Session) => {
+              {/* Follow-up sessions */}
+              {sessions && sessions.filter((session: Session) => {
               if (!session.followUp?.date) return false;
-              const followUpDate = new Date(session.followUp.date);
+              const followUpDate = parseDateLocal(session.followUp.date);
+              if (!followUpDate) return false;
               return (
                 followUpDate.getDate() === day &&
                 followUpDate.getMonth() === currentDate.getMonth() &&
@@ -175,55 +214,53 @@ const CalendarPage: React.FC = () => {
             }).map((session: Session) => (
               <Box
                 key={`followup-${session.id}`}
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 0.5,
-                  mt: 0.5
-                }}
               >
-                <Box
-                  sx={{
-                    width: 8,
-                    height: 8,
-                    borderRadius: '50%',
-                    bgcolor: 'success.main'
-                  }}
-                />
-                <Typography 
-                  variant="caption" 
-                  color="success.main" 
-                  sx={{ 
-                    display: 'block',
-                    cursor: 'pointer',
-                    fontWeight: 'bold',
-                    '&:hover': {
-                      textDecoration: 'underline',
-                      color: 'success.dark'
-                    }
-                  }}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    const client = clients.find(c => c.id === session.clientId);
-                    if (client) {
-                      // Store the complete client object in context (preserve all fields)
-                      if (context.setSelectedClient) {
-                        context.setSelectedClient({
-                          ...client,
-                          upcomingSession: session.followUp?.date || client.upcomingSession
+                {session.isFromCalendarModal ? (
+                  <EventTag
+                    type="calendar"
+                    onClick={(e: React.MouseEvent) => {
+                      e.stopPropagation();
+                      const client = clients.find(c => c.id === session.clientId);
+                      if (client) {
+                        if (context.setSelectedClient) {
+                          context.setSelectedClient({
+                            ...client,
+                            upcomingSession: session.followUp?.date || client.upcomingSession
+                          });
+                        }
+                        navigate(`/clients/${session.clientId}`, {
+                          state: { fromCalendar: true, followUpDate: session.followUp?.date, client }
                         });
                       }
-                      // Navigate to client details and pass the full client in location.state
-                      navigate(`/clients/${session.clientId}`, {
-                        state: { fromCalendar: true, followUpDate: session.followUp?.date, client }
-                      });
-                    }
-                  }}
-                >
-                  Follow-up: {session.clientName}
-                </Typography>
+                    }}
+                  >
+                    Follow-up: {session.clientName} <strong>({session.duration || 0}m)</strong>
+                  </EventTag>
+                ) : (
+                  <EventTag
+                    type="follow-up"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const client = clients.find(c => c.id === session.clientId);
+                      if (client) {
+                        if (context.setSelectedClient) {
+                          context.setSelectedClient({
+                            ...client,
+                            upcomingSession: session.followUp?.date || client.upcomingSession
+                          });
+                        }
+                        navigate(`/clients/${session.clientId}`, {
+                          state: { fromCalendar: true, followUpDate: session.followUp?.date, client }
+                        });
+                      }
+                    }}
+                  >
+                    {`Follow-up: (${session.sessionNumber ?? clients.find(c => c.id === session.clientId)?.sessionCount ?? 0}) ${session.clientName}`}
+                  </EventTag>
+                )}
               </Box>
             ))}
+            </Box>
           </Paper>
         </Box>
       );
@@ -318,7 +355,7 @@ const CalendarPage: React.FC = () => {
                         <ListItem>
                           <ListItemText
                             primary={`${session.time} - ${session.clientName}`}
-                            secondary={`Duration: ${session.duration} minutes`}
+                            secondary={session.isFromCalendarModal ? `Duration: ${session.duration} minutes` : ''}
                           />
                         </ListItem>
                         <Divider />
@@ -326,18 +363,18 @@ const CalendarPage: React.FC = () => {
                     ))}
                     {followUpSessions.map((session: Session) => (
                       <React.Fragment key={`followup-${session.id}`}>
-                        <ListItem>
-                          <ListItemText
-                            primary={`Follow-up: ${session.clientName}`}
-                            secondary={session.followUp?.notes}
-                            sx={{
-                              '& .MuiListItemText-primary': {
-                                color: 'success.main',
-                                fontWeight: 'bold'
-                              }
-                            }}
-                          />
-                        </ListItem>
+                            <ListItem>
+                              <ListItemText
+                                primary={`Follow-up: (${session.sessionNumber ?? clients.find(c => c.id === session.clientId)?.sessionCount ?? 0}) ${session.clientName}`}
+                                secondary={session.followUp?.notes}
+                                sx={{
+                                  '& .MuiListItemText-primary': {
+                                    color: 'success.main',
+                                    fontWeight: 'bold'
+                                  }
+                                }}
+                              />
+                            </ListItem>
                         <Divider />
                       </React.Fragment>
                     ))}

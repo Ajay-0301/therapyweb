@@ -31,6 +31,10 @@ export interface Session {
     date: string;
     notes: string;
   };
+  // sessionNumber captures the client's session count at time of creation
+  sessionNumber?: number;
+  // flag to indicate a session created from the calendar modal
+  isFromCalendarModal?: boolean;
 }
 
 export interface Attachment {

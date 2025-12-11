@@ -14,6 +14,7 @@ const ClientDetailPage: React.FC = () => {
     updateClient, 
     updateSession, 
     addSession, 
+    deleteSession,
     selectedClient,
     setSelectedClient 
   } = useApp();
@@ -70,6 +71,7 @@ const ClientDetailPage: React.FC = () => {
         onUpdateClient={handleUpdateClient}
         onUpdateSession={handleUpdateSession}
         onAddSession={addSession}
+        onDeleteSession={deleteSession}
       />
     </Container>
   );

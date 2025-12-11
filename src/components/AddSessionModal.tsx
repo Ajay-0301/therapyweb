@@ -61,18 +61,34 @@ const AddSessionModal: React.FC<AddSessionModalProps> = ({ open, onClose, onAdd,
     const client = clients.find(c => c.name.toLowerCase() === clientName.toLowerCase());
     const clientId = client ? client.id : `manual-${Date.now()}`;
 
-    // Combine date and time
-    const sessionTime = new Date(selectedTime);
-    const sessionDate = new Date(selectedDate);
+    // Combine date and time - ensure proper local date handling
+    const sessionDate = new Date(selectedDate!);
+    const sessionTime = new Date(selectedTime!);
+    
+    // Set the time from the time picker to the date
     sessionDate.setHours(sessionTime.getHours());
     sessionDate.setMinutes(sessionTime.getMinutes());
+    sessionDate.setSeconds(0);
+    sessionDate.setMilliseconds(0);
+
+    // Format date as YYYY-MM-DD local time (not UTC)
+    const year = sessionDate.getFullYear();
+    const month = String(sessionDate.getMonth() + 1).padStart(2, '0');
+    const day = String(sessionDate.getDate()).padStart(2, '0');
+    const dateStr = `${year}-${month}-${day}`;
+
+    // Format time as HH:MM in 24-hour format
+    const hours = String(sessionDate.getHours()).padStart(2, '0');
+    const minutes = String(sessionDate.getMinutes()).padStart(2, '0');
+    const timeStr = `${hours}:${minutes}`;
 
     onAdd({
       clientId,
       clientName: clientName.trim(),
-      date: sessionDate.toISOString().split('T')[0],
-      time: sessionTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      date: dateStr,
+      time: timeStr,
       duration: Number(duration),
+      isFromCalendarModal: true,
     });
 
     // Reset form
