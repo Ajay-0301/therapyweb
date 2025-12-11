@@ -449,6 +449,9 @@ const ClientDetailView: React.FC<ClientDetailViewProps> = ({
                               Follow-up: ({session.sessionNumber ?? editedClient.sessionCount ?? 0}) {editedClient.name}
                             </EventTag>
                             <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                              Date: {session.followUp.date}
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary">
                               {session.followUp.notes}
                             </Typography>
                           </>
