@@ -49,16 +49,21 @@ const ClientCard: React.FC<ClientCardProps> = ({ client, onClick }) => {
       </ClientAvatar>
       <Box sx={{ flexGrow: 1 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-          <Typography variant="h6" component="div">
-            {client.name}
-          </Typography>
+          <Box>
+            <Typography variant="h6" component="div">
+              {client.name}
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              ID: {client.id}
+            </Typography>
+          </Box>
           <StatusChip
             label={client.status}
             status={client.status}
             size="small"
           />
         </Box>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
           <Typography variant="body2" color="text.secondary">
             Age: {client.age}
           </Typography>
@@ -66,6 +71,20 @@ const ClientCard: React.FC<ClientCardProps> = ({ client, onClick }) => {
             Last Session: {client.lastSession || 'N/A'}
           </Typography>
         </Box>
+        {(client.email || client.phone) && (
+          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+            {client.email && (
+              <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                Email: {client.email}
+              </Typography>
+            )}
+            {client.phone && (
+              <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                Ph no: {client.phone}
+              </Typography>
+            )}
+          </Box>
+        )}
       </Box>
     </StyledCard>
   );

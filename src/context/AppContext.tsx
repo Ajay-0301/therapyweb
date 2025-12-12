@@ -14,7 +14,7 @@ interface AppContextType {
   setSelectedSession: (session: Session | null) => void;
   clients: Client[];
   sessions: Session[];
-  addClient: (client: Omit<Client, 'id'>) => void;
+  addClient: (client: Client) => void;
   // returns created session id
   addSession: (session: Omit<Session, 'id'>) => string;
   updateClient: (client: Client) => void;
@@ -60,10 +60,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [clients, setClients] = useState<Client[]>([]);
   const [sessions, setSessions] = useState<Session[]>([]);
 
-  const addClient = (clientData: Omit<Client, 'id'>) => {
+  const addClient = (clientData: Client) => {
     const newClient: Client = {
       ...clientData,
-      id: `client-${Date.now()}`, // Simple ID generation
       sessionCount: clientData.sessionCount || 0,
     };
     setClients(prevClients => [...prevClients, newClient]);

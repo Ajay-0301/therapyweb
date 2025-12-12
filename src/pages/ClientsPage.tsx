@@ -82,9 +82,9 @@ const ClientsPage: React.FC = () => {
         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr' }, gap: 3 }}>
           {clients
             .filter((client) => {
-              // Apply search filter
-              const searchLower = searchQuery.toLowerCase();
-              if (searchQuery && !client.name.toLowerCase().includes(searchLower)) {
+              // Apply search filter - search by name or ID
+              const searchLower = searchQuery.toLowerCase().trim();
+              if (searchLower && !client.name.toLowerCase().includes(searchLower) && !client.id.toLowerCase().includes(searchLower)) {
                 return false;
               }
               // Apply status filter
@@ -97,13 +97,29 @@ const ClientsPage: React.FC = () => {
               <ClientCard 
                 key={client.id}
                 client={client} 
-                onClick={() => navigate(`/clients/${client.id}`)}
+                onClick={() => navigate(`/clients/${client.id}`, { state: { client } })}
               />
             ))}
-          {clients.length === 0 && (
+          {clients.length === 0 && !searchQuery && (
             <Box sx={{ gridColumn: '1 / -1' }}>
               <Typography variant="body1" color="text.secondary" sx={{ textAlign: 'center', mt: 4 }}>
                 No clients yet. Click "Add Client" to get started.
+              </Typography>
+            </Box>
+          )}
+          {clients.length > 0 && clients.filter((client) => {
+            const searchLower = searchQuery.toLowerCase().trim();
+            if (searchLower && !client.name.toLowerCase().includes(searchLower) && !client.id.toLowerCase().includes(searchLower)) {
+              return false;
+            }
+            if (filter !== 'all' && client.status.toLowerCase() !== filter) {
+              return false;
+            }
+            return true;
+          }).length === 0 && searchQuery && (
+            <Box sx={{ gridColumn: '1 / -1' }}>
+              <Typography variant="body1" color="text.secondary" sx={{ textAlign: 'center', mt: 4 }}>
+                No client found.
               </Typography>
             </Box>
           )}

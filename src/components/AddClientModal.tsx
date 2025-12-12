@@ -14,7 +14,7 @@ import { Client } from '../types';
 interface AddClientModalProps {
   open: boolean;
   onClose: () => void;
-  onAdd: (client: Omit<Client, 'id' | 'status'>) => void;
+  onAdd: (client: Omit<Client, 'status'>) => void;
 }
 
 const AddClientModal: React.FC<AddClientModalProps> = ({ open, onClose, onAdd }) => {
@@ -22,12 +22,17 @@ const AddClientModal: React.FC<AddClientModalProps> = ({ open, onClose, onAdd })
   const [age, setAge] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
+  const [clientId, setClientId] = useState('');
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
     // Validation
+    if (!clientId.trim()) {
+      setError('Client ID is required');
+      return;
+    }
     if (!name.trim()) {
       setError('Name is required');
       return;
@@ -50,6 +55,7 @@ const AddClientModal: React.FC<AddClientModalProps> = ({ open, onClose, onAdd })
     }
 
     onAdd({
+      id: clientId.trim(),
       name: name.trim(),
       age: Number(age),
       email: email || undefined,
@@ -61,6 +67,7 @@ const AddClientModal: React.FC<AddClientModalProps> = ({ open, onClose, onAdd })
     setAge('');
     setEmail('');
     setPhone('');
+    setClientId('');
     setError(null);
     onClose();
   };
@@ -76,6 +83,14 @@ const AddClientModal: React.FC<AddClientModalProps> = ({ open, onClose, onAdd })
             </Typography>
           )}
           <Box sx={{ display: 'grid', gap: 2 }}>
+            <TextField
+              label="Client ID"
+              value={clientId}
+              onChange={(e) => setClientId(e.target.value)}
+              fullWidth
+              required
+              helperText="Enter a unique ID (any number of digits)"
+            />
             <TextField
               label="Name"
               value={name}

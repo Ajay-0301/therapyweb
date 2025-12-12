@@ -151,7 +151,8 @@ const CalendarPage: React.FC = () => {
             onClick={() => {
               // If exactly one follow-up is scheduled on this day, navigate directly to that client's details
               if (followUpSessionsForDay && followUpSessionsForDay.length === 1) {
-                navigate(`/clients/${followUpSessionsForDay[0].clientId}`);
+                const client = clients.find(c => c.id === followUpSessionsForDay[0].clientId);
+                navigate(`/clients/${followUpSessionsForDay[0].clientId}`, { state: { client } });
                 return;
               }
               setSelectedDate(new Date(currentDate.getFullYear(), currentDate.getMonth(), day));

@@ -39,6 +39,8 @@ const ClientDetailView: React.FC<ClientDetailViewProps> = ({
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editedClient, setEditedClient] = useState(client);
+  const [chiefComplaints, setChiefComplaints] = useState(client.chiefComplaints || '');
+  const [hopi, setHopi] = useState(client.hopi || '');
   const [sessionNotes, setSessionNotes] = useState('');
   const [followUpDate, setFollowUpDate] = useState<Date | null>(null);
   const [followUpNotes, setFollowUpNotes] = useState('');
@@ -50,17 +52,38 @@ const ClientDetailView: React.FC<ClientDetailViewProps> = ({
   const navigate = useNavigate();
 
   const handleSave = () => {
-    onUpdateClient(editedClient);
+    onUpdateClient({
+      ...editedClient,
+      chiefComplaints,
+      hopi,
+    });
     setIsEditing(false);
   };
 
-  // Keep local editedClient in sync when parent prop changes (e.g. after update)
+  // Keep local editedClient in sync when navigating to different client
   useEffect(() => {
-    // Only overwrite local edits when the user is NOT actively editing the profile
-    if (!isEditing) {
-      setEditedClient(client);
-    }
-  }, [client, isEditing]);
+    // When navigating to a different client, load that client's data
+    setEditedClient(client);
+    
+    // Find the latest session for this client to load Chief Complaints and HOPI
+    const clientSessions = sessions.filter(s => s.clientId === client.id);
+    const latestSession = clientSessions.length > 0 
+      ? clientSessions.reduce((latest, current) => {
+          const latestDate = new Date(latest.date);
+          const currentDate = new Date(current.date);
+          return currentDate > latestDate ? current : latest;
+        })
+      : null;
+    
+    // Load Chief Complaints and HOPI from latest session or client profile
+    setChiefComplaints(latestSession?.chiefComplaints || client.chiefComplaints || '');
+    setHopi(latestSession?.hopi || client.hopi || '');
+    
+    // Reset session form fields (not Chief Complaints/HOPI)
+    setSessionNotes('');
+    setFollowUpDate(null);
+    setFollowUpNotes('');
+  }, [client, sessions]);
 
   const handleChangeSessionCount = (delta: number) => {
     const current = editedClient.sessionCount ?? sessions.filter(s => s.clientId === client.id).length;
@@ -93,16 +116,20 @@ const ClientDetailView: React.FC<ClientDetailViewProps> = ({
       time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
       duration: 60, // default duration
       notes: sessionNotes,
+      chiefComplaints, // Save Chief Complaints with the session
+      hopi, // Save HOPI with the session
       followUp: {
         date: followUpDate.toISOString().split('T')[0],
         notes: followUpNotes
       }
     };
 
-    // Update only the client's session dates (do not overwrite chief complaints or HOPI)
+    // Update only the client's session dates (preserve Chief Complaints and HOPI from persistent state)
     // Use the stored `client` object so manual profile edits are not auto-saved.
     onUpdateClient({
       ...client,
+      chiefComplaints,
+      hopi,
       lastSession: today.toISOString().split('T')[0],
       upcomingSession: followUpDate.toISOString().split('T')[0]
     });
@@ -118,6 +145,9 @@ const ClientDetailView: React.FC<ClientDetailViewProps> = ({
     setSessionNotes('');
     setFollowUpDate(null);
     setFollowUpNotes('');
+    
+    // Disable editing mode and show pencil icon after session is saved
+    setIsEditing(false);
   };
 
   const handleUndo = () => {
@@ -149,6 +179,15 @@ const ClientDetailView: React.FC<ClientDetailViewProps> = ({
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
           <Box sx={{ flex: '1 1 300px' }}>
             <TextField
+              label="Client ID"
+              fullWidth
+              value={editedClient.id}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditedClient({ ...editedClient, id: e.target.value })}
+              disabled={!isEditing}
+            />
+          </Box>
+          <Box sx={{ flex: '1 1 300px' }}>
+            <TextField
               label="Name"
               fullWidth
               value={editedClient.name}
@@ -172,6 +211,25 @@ const ClientDetailView: React.FC<ClientDetailViewProps> = ({
               fullWidth
               value={editedClient.occupation || ''}
               onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setEditedClient({ ...editedClient, occupation: e.target.value })}
+              disabled={!isEditing}
+            />
+          </Box>
+          <Box sx={{ flex: '1 1 300px' }}>
+            <TextField
+              label="Email"
+              fullWidth
+              type="email"
+              value={editedClient.email || ''}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditedClient({ ...editedClient, email: e.target.value })}
+              disabled={!isEditing}
+            />
+          </Box>
+          <Box sx={{ flex: '1 1 300px' }}>
+            <TextField
+              label="Phone"
+              fullWidth
+              value={editedClient.phone || ''}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditedClient({ ...editedClient, phone: e.target.value })}
               disabled={!isEditing}
             />
           </Box>
@@ -287,8 +345,11 @@ const ClientDetailView: React.FC<ClientDetailViewProps> = ({
           multiline
           rows={4}
           fullWidth
-          value={editedClient.chiefComplaints || ''}
-          onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setEditedClient({ ...editedClient, chiefComplaints: e.target.value })}
+          value={chiefComplaints}
+          onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
+            setChiefComplaints(e.target.value);
+            setEditedClient({ ...editedClient, chiefComplaints: e.target.value });
+          }}
           disabled={!isEditing}
           placeholder="Enter chief complaints..."
         />
@@ -303,8 +364,11 @@ const ClientDetailView: React.FC<ClientDetailViewProps> = ({
           multiline
           rows={6}
           fullWidth
-          value={editedClient.hopi || ''}
-          onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setEditedClient({ ...editedClient, hopi: e.target.value })}
+          value={hopi}
+          onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
+            setHopi(e.target.value);
+            setEditedClient({ ...editedClient, hopi: e.target.value });
+          }}
           disabled={!isEditing}
           placeholder="Enter history of presenting illness..."
         />

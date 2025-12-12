@@ -27,6 +27,8 @@ export interface Session {
   time: string;
   duration: number; // in minutes
   notes?: string;
+  chiefComplaints?: string; // Store Chief Complaints from the session
+  hopi?: string; // Store HOPI from the session
   followUp?: {
     date: string;
     notes: string;
