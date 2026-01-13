@@ -33,8 +33,14 @@ const AddSessionModal: React.FC<AddSessionModalProps> = ({ open, onClose, onAdd,
   const [selectedTime, setSelectedTime] = useState<Date | null>(null);
   const [duration, setDuration] = useState('60');
   const [error, setError] = useState<string | null>(null);
+  // Profile fields for standalone sessions
+  const [email, setEmail] = useState<string>('');
+  const [phone, setPhone] = useState<string>('');
+  const [occupation, setOccupation] = useState<string>('');
+  const [age, setAge] = useState<string>('');
 
   const clientOptions = clients.map(c => c.name);
+  const isExistingClient = clients.some(c => c.name.toLowerCase() === clientName.toLowerCase());
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,9 +63,8 @@ const AddSessionModal: React.FC<AddSessionModalProps> = ({ open, onClose, onAdd,
       return;
     }
 
-    // Try to find client by name, or use the manually entered name
-    const client = clients.find(c => c.name.toLowerCase() === clientName.toLowerCase());
-    const clientId = client ? client.id : `manual-${Date.now()}`;
+    // Always create standalone session
+    const clientId = undefined;
 
     // Combine date and time - ensure proper local date handling
     const sessionDate = new Date(selectedDate!);
@@ -82,20 +87,33 @@ const AddSessionModal: React.FC<AddSessionModalProps> = ({ open, onClose, onAdd,
     const minutes = String(sessionDate.getMinutes()).padStart(2, '0');
     const timeStr = `${hours}:${minutes}`;
 
-    onAdd({
+    const sessionData: Omit<Session, 'id'> = {
       clientId,
       clientName: clientName.trim(),
       date: dateStr,
       time: timeStr,
       duration: Number(duration),
       isFromCalendarModal: true,
-    });
+    };
+
+    // Always add profile fields for calendar sessions
+    sessionData.email = email.trim() || undefined;
+    sessionData.phone = phone.trim() || undefined;
+    sessionData.occupation = occupation.trim() || undefined;
+    sessionData.age = age ? Number(age) : undefined;
+    sessionData.status = 'Active';
+
+    onAdd(sessionData);
 
     // Reset form
     setClientName('');
     setSelectedDate(null);
     setSelectedTime(null);
     setDuration('60');
+    setEmail('');
+    setPhone('');
+    setOccupation('');
+    setAge('');
     setError(null);
     onClose();
   };
@@ -131,6 +149,40 @@ const AddSessionModal: React.FC<AddSessionModalProps> = ({ open, onClose, onAdd,
                 />
               )}
             />
+
+            {clientName.trim() && (
+              <>
+                <TextField
+                  label="Email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  fullWidth
+                />
+                <TextField
+                  label="Phone"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  fullWidth
+                />
+                <TextField
+                  label="Occupation"
+                  value={occupation}
+                  onChange={(e) => setOccupation(e.target.value)}
+                  fullWidth
+                />
+                <TextField
+                  label="Age"
+                  type="number"
+                  value={age}
+                  onChange={(e) => setAge(e.target.value)}
+                  fullWidth
+                  InputProps={{
+                    inputProps: { min: 0 }
+                  }}
+                />
+              </>
+            )}
 
             <LocalizationProvider dateAdapter={AdapterDateFns}>
               <DatePicker

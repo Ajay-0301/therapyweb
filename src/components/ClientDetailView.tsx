@@ -109,17 +109,27 @@ const ClientDetailView: React.FC<ClientDetailViewProps> = ({
 
     // Create a new session with today's date
     const today = new Date();
+    const todayYear = today.getFullYear();
+    const todayMonth = String(today.getMonth() + 1).padStart(2, '0');
+    const todayDay = String(today.getDate()).padStart(2, '0');
+    const todayStr = `${todayYear}-${todayMonth}-${todayDay}`;
+
+    const followUpYear = followUpDate.getFullYear();
+    const followUpMonth = String(followUpDate.getMonth() + 1).padStart(2, '0');
+    const followUpDay = String(followUpDate.getDate()).padStart(2, '0');
+    const followUpStr = `${followUpYear}-${followUpMonth}-${followUpDay}`;
+
     const newSession: Omit<Session, 'id'> = {
       clientId: client.id,
       clientName: client.name,
-      date: today.toISOString().split('T')[0],
+      date: todayStr,
       time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
       duration: 60, // default duration
       notes: sessionNotes,
       chiefComplaints, // Save Chief Complaints with the session
       hopi, // Save HOPI with the session
       followUp: {
-        date: followUpDate.toISOString().split('T')[0],
+        date: followUpStr,
         notes: followUpNotes
       }
     };
@@ -130,8 +140,8 @@ const ClientDetailView: React.FC<ClientDetailViewProps> = ({
       ...client,
       chiefComplaints,
       hopi,
-      lastSession: today.toISOString().split('T')[0],
-      upcomingSession: followUpDate.toISOString().split('T')[0]
+      lastSession: todayStr,
+      upcomingSession: followUpStr
     });
 
     // Add the new session and capture id for undo
@@ -238,12 +248,11 @@ const ClientDetailView: React.FC<ClientDetailViewProps> = ({
         <Box sx={{ mt: 3, display: 'flex', alignItems: 'center', gap: 2 }}>
           <Typography variant="h6">Status:</Typography>
           <Button
-            variant={editedClient.status === 'Active' ? 'contained' : 'outlined'}
-            color="primary"
+            variant={client.status === 'Active' ? 'contained' : 'outlined'}
+            color="success"
             onClick={() => {
-              const updated: Client = { ...editedClient, status: 'Active' as Client['status'] };
+              const updated: Client = { ...client, status: 'Active' as Client['status'] };
               setEditedClient(updated);
-              // Persist immediately so dashboard and lists reflect change
               onUpdateClient(updated);
             }}
             sx={{ minWidth: 100 }}
@@ -251,12 +260,11 @@ const ClientDetailView: React.FC<ClientDetailViewProps> = ({
             Active
           </Button>
           <Button
-            variant={editedClient.status === 'Completed' ? 'contained' : 'outlined'}
-            color="secondary"
+            variant={client.status === 'Completed' ? 'contained' : 'outlined'}
+            color="error"
             onClick={() => {
-              const updated: Client = { ...editedClient, status: 'Completed' as Client['status'], upcomingSession: undefined };
+              const updated: Client = { ...client, status: 'Completed' as Client['status'], upcomingSession: undefined };
               setEditedClient(updated);
-              // Persist immediately so dashboard count updates
               onUpdateClient(updated);
             }}
             sx={{ minWidth: 100 }}
@@ -264,6 +272,17 @@ const ClientDetailView: React.FC<ClientDetailViewProps> = ({
             Completed
           </Button>
         </Box>
+
+        {client.status === 'Completed' && (
+          <Paper elevation={2} sx={{ p: 3, mb: 3, backgroundColor: '#ffebee', borderLeft: '4px solid #f44336' }}>
+            <Typography variant="h6" sx={{ color: '#c62828', mb: 1 }}>
+              ✓ Case Completed
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              This case has been marked as completed. No further sessions can be scheduled.
+            </Typography>
+          </Paper>
+        )}
 
         <Paper elevation={2} sx={{ p: 3, mb: 3 }}>
           <Typography variant="h6" gutterBottom>

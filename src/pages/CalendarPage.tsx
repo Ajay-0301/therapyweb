@@ -178,7 +178,11 @@ const CalendarPage: React.FC = () => {
                 }}
                 onClick={(e) => {
                   e.stopPropagation();
-                  navigate(`/clients/${session.clientId}`);
+                  if (session.clientId) {
+                    navigate(`/clients/${session.clientId}`);
+                  } else {
+                    navigate(`/sessions/${session.id}`, { state: { session } });
+                  }
                 }}
               >
                 {session.isFromCalendarModal ? (
@@ -186,7 +190,11 @@ const CalendarPage: React.FC = () => {
                     type="calendar"
                     onClick={(e: React.MouseEvent) => {
                       e.stopPropagation();
-                      navigate(`/clients/${session.clientId}`);
+                      if (session.clientId) {
+                        navigate(`/clients/${session.clientId}`);
+                      } else {
+                        navigate(`/sessions/${session.id}`, { state: { session } });
+                      }
                     }}
                   >
                     {session.clientName} ({session.duration || 0}m) - {formatTimeToAMPM(session.time)}

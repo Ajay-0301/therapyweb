@@ -17,6 +17,7 @@ import InsightsPage from './pages/InsightsPage';
 import SettingsPage from './pages/SettingsPage';
 import Layout from './components/Layout';
 import ClientDetailPage from './pages/ClientDetailPage';
+import SessionDetailPage from './pages/SessionDetailPage';
 
 const App: React.FC = () => {
   return (
@@ -41,7 +42,8 @@ const App: React.FC = () => {
                   <Route index element={<Navigate to="/dashboard" replace />} />
                   <Route path="dashboard" element={<DashboardPage />} />
                   <Route path="clients" element={<ClientsPage />} />
-                <Route path="clients/:clientId" element={<ClientDetailPage />} />
+                  <Route path="clients/:clientId" element={<ClientDetailPage />} />
+                  <Route path="sessions/:sessionId" element={<SessionDetailPage />} />
                   {/* Implemented routes */}
                   <Route path="calendar" element={<CalendarPage />} />
                   <Route path="insights" element={<InsightsPage />} />

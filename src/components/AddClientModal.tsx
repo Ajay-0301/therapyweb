@@ -105,6 +105,9 @@ const AddClientModal: React.FC<AddClientModalProps> = ({ open, onClose, onAdd })
               onChange={(e) => setAge(e.target.value)}
               fullWidth
               required
+              InputProps={{
+                inputProps: { min: 0 }
+              }}
             />
             <TextField
               label="Email"

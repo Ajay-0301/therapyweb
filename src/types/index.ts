@@ -21,7 +21,7 @@ export interface Client {
 
 export interface Session {
   id: string;
-  clientId: string;
+  clientId?: string; // optional, null for standalone sessions
   clientName: string;
   date: string;
   time: string;
@@ -37,6 +37,12 @@ export interface Session {
   sessionNumber?: number;
   // flag to indicate a session created from the calendar modal
   isFromCalendarModal?: boolean;
+  // Profile fields for standalone sessions
+  email?: string;
+  phone?: string;
+  occupation?: string;
+  age?: number;
+  status?: 'Active' | 'Completed';
 }
 
 export interface Attachment {

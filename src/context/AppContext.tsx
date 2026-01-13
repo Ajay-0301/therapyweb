@@ -20,6 +20,7 @@ interface AppContextType {
   updateClient: (client: Client) => void;
   incrementClientSessionCount: (clientId: string, delta?: number) => void;
   updateSession: (sessionId: string, notes: string, followUp: { date: string; notes: string }) => void;
+  updateSessionProfile: (session: Session) => void;
   deleteSession: (sessionId: string) => void;
 }
 
@@ -105,8 +106,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const addSession = (sessionData: Omit<Session, 'id'>) => {
-    // Find client and increment their sessionCount
-    const client = clients.find(c => c.id === sessionData.clientId);
+    // Find client and increment their sessionCount only if clientId exists
+    const client = sessionData.clientId ? clients.find(c => c.id === sessionData.clientId) : null;
     const prevCount = client?.sessionCount || 0;
     const newCount = prevCount + 1;
 
@@ -126,7 +127,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const newSession: Session = {
       ...sessionData,
       id: `session-${Date.now()}`,
-      sessionNumber: newCount,
+      sessionNumber: client ? newCount : undefined, // Only set sessionNumber if linked to client
       isFromCalendarModal: (sessionData as any).isFromCalendarModal || false,
     };
 
@@ -141,12 +142,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     // Remove session
     setSessions(prev => prev.filter(s => s.id !== sessionId));
 
-    // If session had a sessionNumber, decrement client's sessionCount
-    const client = clients.find(c => c.id === sessionToDelete.clientId);
-    if (client) {
-      const updatedClient: Client = { ...client, sessionCount: Math.max(0, (client.sessionCount || 1) - 1) };
-      setClients(prev => prev.map(c => c.id === client.id ? updatedClient : c));
-      if (selectedClient?.id === client.id) setSelectedClient(updatedClient);
+    // If session had a clientId, decrement client's sessionCount
+    if (sessionToDelete.clientId) {
+      const client = clients.find(c => c.id === sessionToDelete.clientId);
+      if (client) {
+        const updatedClient: Client = { ...client, sessionCount: Math.max(0, (client.sessionCount || 1) - 1) };
+        setClients(prev => prev.map(c => c.id === client.id ? updatedClient : c));
+        if (selectedClient?.id === client.id) setSelectedClient(updatedClient);
+      }
     }
   };
 
@@ -179,6 +182,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
+  const updateSessionProfile = (updatedSession: Session) => {
+    setSessions(prevSessions =>
+      prevSessions.map(session =>
+        session.id === updatedSession.id
+          ? updatedSession
+          : session
+      )
+    );
+  };
+
   return (
     <AppContext.Provider
       value={{
@@ -193,7 +206,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         deleteSession,
         updateClient,
         incrementClientSessionCount,
-        updateSession
+        updateSession,
+        updateSessionProfile
       }}
     >
       {children}

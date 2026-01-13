@@ -59,7 +59,7 @@ const LoginPage: React.FC = () => {
         <Box sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
           <EcoIcon sx={{ color: 'primary.main', fontSize: 40 }} />
           <Typography variant="h4" component="h1">
-            Thanya Therapy Notes
+            Psychological Therapy Notes
           </Typography>
         </Box>
 
