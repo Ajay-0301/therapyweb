@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { useParams, useLocation } from 'react-router-dom';
 import { Box, Container, Typography } from '@mui/material';
 import SessionDetailView from '../components/SessionDetailView';

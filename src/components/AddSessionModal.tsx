@@ -40,7 +40,6 @@ const AddSessionModal: React.FC<AddSessionModalProps> = ({ open, onClose, onAdd,
   const [age, setAge] = useState<string>('');
 
   const clientOptions = clients.map(c => c.name);
-  const isExistingClient = clients.some(c => c.name.toLowerCase() === clientName.toLowerCase());
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

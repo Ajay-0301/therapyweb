@@ -7,25 +7,86 @@ import {
   Typography,
   Alert,
   Paper,
+  Avatar,
+  CircularProgress,
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AppContext';
-import { AutoAwesome as EcoIcon } from '@mui/icons-material';
+import { LockOutlined } from '@mui/icons-material';
+
+const StyledContainer = styled(Container)(({ theme }) => ({
+  minHeight: '100vh',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  background: `linear-gradient(135deg, ${theme.palette.primary.light}20 0%, ${theme.palette.secondary.light}20 100%)`,
+  position: 'relative',
+  '&::before': {
+    content: '""',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    background: `radial-gradient(circle at 20% 80%, ${theme.palette.primary.main}10 0%, transparent 50%), radial-gradient(circle at 80% 20%, ${theme.palette.secondary.main}10 0%, transparent 50%)`,
+    pointerEvents: 'none',
+  },
+}));
 
 const StyledPaper = styled(Paper)(({ theme }) => ({
   marginTop: theme.spacing(8),
-  padding: theme.spacing(4),
+  padding: theme.spacing(6),
   display: 'flex',
   flexDirection: 'column',
   alignItems: 'center',
-  borderRadius: theme.shape.borderRadius,
-  boxShadow: theme.shadows[2],
+  borderRadius: theme.spacing(3),
+  boxShadow: `0 20px 40px ${theme.palette.primary.main}15, 0 8px 16px ${theme.palette.secondary.main}10`,
+  backdropFilter: 'blur(10px)',
+  background: 'rgba(255, 255, 255, 0.95)',
+  border: `1px solid ${theme.palette.primary.light}20`,
+  position: 'relative',
+  zIndex: 1,
+}));
+
+const StyledAvatar = styled(Avatar)(({ theme }) => ({
+  margin: theme.spacing(1),
+  backgroundColor: theme.palette.primary.main,
+  width: 64,
+  height: 64,
+  boxShadow: `0 8px 16px ${theme.palette.primary.main}30`,
 }));
 
 const Form = styled('form')(({ theme }) => ({
   width: '100%',
-  marginTop: theme.spacing(1),
+  marginTop: theme.spacing(3),
+}));
+
+const StyledTextField = styled(TextField)(({ theme }) => ({
+  '& .MuiOutlinedInput-root': {
+    borderRadius: theme.spacing(2),
+    '&:hover fieldset': {
+      borderColor: theme.palette.primary.main,
+    },
+    '&.Mui-focused fieldset': {
+      borderColor: theme.palette.primary.main,
+    },
+  },
+}));
+
+const StyledButton = styled(Button)(({ theme }) => ({
+  margin: theme.spacing(3, 0, 2),
+  padding: theme.spacing(1.5),
+  borderRadius: theme.spacing(2),
+  fontSize: '1.1rem',
+  fontWeight: 600,
+  textTransform: 'none',
+  boxShadow: `0 4px 12px ${theme.palette.primary.main}30`,
+  '&:hover': {
+    boxShadow: `0 6px 20px ${theme.palette.primary.main}40`,
+    transform: 'translateY(-1px)',
+  },
+  transition: 'all 0.2s ease-in-out',
 }));
 
 const LoginPage: React.FC = () => {
@@ -54,24 +115,26 @@ const LoginPage: React.FC = () => {
   };
 
   return (
-    <Container component="main" maxWidth="xs">
+    <StyledContainer maxWidth="sm">
       <StyledPaper>
-        <Box sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
-          <EcoIcon sx={{ color: 'primary.main', fontSize: 40 }} />
-          <Typography variant="h4" component="h1">
-            Psychological Therapy Notes
-          </Typography>
-        </Box>
+        <StyledAvatar>
+          <LockOutlined />
+        </StyledAvatar>
+        <Typography component="h1" variant="h4" sx={{ mb: 1, fontWeight: 600 }}>
+          Welcome Back
+        </Typography>
+        <Typography variant="body1" color="text.secondary" align="center" sx={{ mb: 3 }}>
+          Sign in to your therapy management dashboard
+        </Typography>
 
         <Form onSubmit={handleSubmit}>
           {error && (
-            <Alert severity="error" sx={{ mb: 2 }}>
+            <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>
               {error}
             </Alert>
           )}
 
-          <TextField
-            variant="outlined"
+          <StyledTextField
             margin="normal"
             required
             fullWidth
@@ -85,8 +148,7 @@ const LoginPage: React.FC = () => {
             disabled={isLoading}
           />
 
-          <TextField
-            variant="outlined"
+          <StyledTextField
             margin="normal"
             required
             fullWidth
@@ -100,38 +162,33 @@ const LoginPage: React.FC = () => {
             disabled={isLoading}
           />
 
-          <Button
+          <StyledButton
             type="submit"
             fullWidth
             variant="contained"
             color="primary"
             disabled={isLoading}
-            sx={{ mt: 3, mb: 2 }}
+            startIcon={isLoading ? <CircularProgress size={20} color="inherit" /> : null}
           >
             {isLoading ? 'Signing in...' : 'Sign In'}
-          </Button>
+          </StyledButton>
 
-          <Button
-            fullWidth
-            variant="outlined"
-            color="primary"
-            disabled={isLoading}
-            sx={{ mb: 2 }}
-          >
-            Enable Two-Factor Authentication
-          </Button>
+          <Box sx={{ mt: 2, mb: 3 }}>
+            <Typography variant="body2" color="text.secondary" align="center">
+              <strong>Demo Credentials:</strong><br />
+              Email: <code>demo@thanya.com</code><br />
+              Password: <code>demo123</code>
+            </Typography>
+          </Box>
 
-          <Typography variant="body2" color="text.secondary" align="center" sx={{ mb: 2 }}>
-            Note: Backend integration pending. This is a frontend-only version.
-          </Typography>
-          <Typography variant="body2" color="primary" align="center">
-            Demo Login Credentials:<br />
-            Email: demo@thanya.com<br />
-            Password: demo123
-          </Typography>
+          <Alert severity="info" sx={{ borderRadius: 2 }}>
+            <Typography variant="body2">
+              <strong>Note:</strong> This is a frontend-only version. Backend integration is planned for the next phase.
+            </Typography>
+          </Alert>
         </Form>
       </StyledPaper>
-    </Container>
+    </StyledContainer>
   );
 };
 

@@ -48,27 +48,29 @@ export const theme = createTheme({
     },
     button: {
       fontSize: '16px',
-      fontWeight: 600,
+      fontWeight: 500,
       textTransform: 'none',
     },
   },
   shape: {
-    borderRadius: 16,
+    borderRadius: 12,
   },
   components: {
     MuiButton: {
       styleOverrides: {
         root: {
-          borderRadius: 16,
-          padding: '12px 24px',
-          boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.1)',
+          borderRadius: 12,
+          fontWeight: 500,
+          textTransform: 'none',
+          boxShadow: 'none',
           '&:hover': {
-            boxShadow: '0px 4px 8px rgba(0, 0, 0, 0.15)',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
           },
         },
         contained: {
-          '&.MuiButton-containedPrimary': {
-            color: '#FFFFFF',
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+          '&:hover': {
+            boxShadow: '0 4px 16px rgba(0, 0, 0, 0.2)',
           },
         },
       },
@@ -77,8 +79,15 @@ export const theme = createTheme({
       styleOverrides: {
         root: {
           borderRadius: 16,
-          boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.1)',
-          padding: '16px',
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+          border: '1px solid rgba(0, 0, 0, 0.05)',
+        },
+      },
+    },
+    MuiPaper: {
+      styleOverrides: {
+        root: {
+          borderRadius: 16,
         },
       },
     },
