@@ -1,10 +1,8 @@
 {
   "version": 2,
-  "rootDirectory": ".",
   "functions": {
     "backend/src/server.ts": {
-      "runtime": "@vercel/node",
-      "build": "cd backend && npm run vercel-build"
+      "runtime": "@vercel/node"
     }
   },
   "routes": [
