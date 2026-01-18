@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography, Container, Card, CardContent, Chip, Avatar, Divider } from '@mui/material';
+import { Box, Typography, Container, Card, CardContent, Chip, Avatar, Divider, IconButton } from '@mui/material';
 import StatCard from '../components/StatCard';
 import { useApp } from '../context/AppContext';
 import { useNavigate } from 'react-router-dom';
@@ -10,6 +10,7 @@ import {
   Event as EventIcon,
   Schedule as ScheduleIcon,
   FollowTheSigns as FollowUpIcon,
+  Delete as DeleteIcon,
 } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
 
@@ -41,23 +42,23 @@ const UpcomingItem = styled(Box)(({ theme }) => ({
 }));
 
 const DashboardPage: React.FC = () => {
-  const { clients, sessions } = useApp();
+  const { clients, allSessions, deleteSession } = useApp();
   const navigate = useNavigate();
 
   // Calculate statistics
   const totalClients = clients.length;
   const activeClients = clients.filter(client => client.status === 'Active').length;
   const completedClients = clients.filter(client => client.status === 'Completed').length;
-  const totalSessions = sessions.length;
+  const totalSessions = allSessions.length;
 
   // Get upcoming sessions
   const today = new Date();
-  const upcomingAppointments = sessions
+  const upcomingAppointments = allSessions
     .filter(session => new Date(session.date) >= today)
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
     .slice(0, 5);
 
-  const upcomingFollowUps = sessions
+  const upcomingFollowUps = allSessions
     .filter(session => session.followUp && new Date(session.followUp.date) >= today)
     .sort((a, b) => new Date(a.followUp!.date).getTime() - new Date(b.followUp!.date).getTime())
     .slice(0, 5);
@@ -67,9 +68,7 @@ const DashboardPage: React.FC = () => {
   };
 
   const handleSessionClick = (session: any) => {
-    if (session.clientId) {
-      navigate(`/clients/${session.clientId}`);
-    }
+    navigate(`/sessions/${session.id}`, { state: { session } });
   };
 
   return (
@@ -132,7 +131,7 @@ const DashboardPage: React.FC = () => {
                     <Box sx={{ flex: 1 }}>
                       <Typography variant="subtitle2">{client.name}</Typography>
                       <Typography variant="body2" color="text.secondary">
-                        Case completed • {sessions.filter(s => s.clientId === client.id).length} sessions
+                        Case completed • {allSessions.filter(s => s.clientId === client.id).length} sessions
                       </Typography>
                     </Box>
                     <Chip label="Completed" color="success" size="small" />
@@ -167,7 +166,26 @@ const DashboardPage: React.FC = () => {
                         <Typography variant="body2" color="text.secondary">
                           {new Date(session.date).toLocaleDateString()} at {session.time}
                         </Typography>
+                        {session.notes && (
+                          <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem', mt: 0.5 }}>
+                            Notes: {session.notes.length > 50 ? `${session.notes.substring(0, 50)}...` : session.notes}
+                          </Typography>
+                        )}
                       </Box>
+                      <IconButton
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          try {
+                            await deleteSession(session.id);
+                          } catch (error) {
+                            console.error('Failed to delete session:', error);
+                          }
+                        }}
+                        sx={{ mr: 1, color: 'error.main' }}
+                        size="small"
+                      >
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
                       <Chip
                         label={isCalendarSession ? 'Calendar' : 'Client'}
                         color={isCalendarSession ? 'primary' : 'secondary'}
@@ -200,7 +218,21 @@ const DashboardPage: React.FC = () => {
                   const isCalendarSession = !session.clientId;
                   return (
                     <Card key={session.id} variant="outlined" sx={{ cursor: 'pointer', '&:hover': { boxShadow: 2 } }} onClick={() => handleSessionClick(session)}>
-                      <CardContent sx={{ p: 2 }}>
+                      <CardContent sx={{ p: 2, position: 'relative' }}>
+                        <IconButton
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            try {
+                              await deleteSession(session.id);
+                            } catch (error) {
+                              console.error('Failed to delete session:', error);
+                            }
+                          }}
+                          sx={{ position: 'absolute', top: 8, right: 8, color: 'error.main' }}
+                          size="small"
+                        >
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
                         <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
                           <Avatar sx={{ mr: 1, width: 24, height: 24, bgcolor: isCalendarSession ? 'primary.main' : 'secondary.main' }}>
                             <FollowUpIcon fontSize="small" />
@@ -210,11 +242,19 @@ const DashboardPage: React.FC = () => {
                           </Typography>
                         </Box>
                         <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
-                          {new Date(session.followUp!.date).toLocaleDateString()}
+                          Session: {new Date(session.date).toLocaleDateString()} at {session.time}
                         </Typography>
+                        <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                          Follow-up: {new Date(session.followUp!.date).toLocaleDateString()}
+                        </Typography>
+                        {session.notes && (
+                          <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem', mt: 0.5 }}>
+                            Session Notes: {session.notes.length > 50 ? `${session.notes.substring(0, 50)}...` : session.notes}
+                          </Typography>
+                        )}
                         {session.followUp?.notes && (
                           <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem', mt: 0.5 }}>
-                            {session.followUp.notes.length > 30 ? `${session.followUp.notes.substring(0, 30)}...` : session.followUp.notes}
+                            Follow-up Notes: {session.followUp.notes.length > 50 ? `${session.followUp.notes.substring(0, 50)}...` : session.followUp.notes}
                           </Typography>
                         )}
                       </CardContent>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Container,
   Box,
@@ -13,7 +13,6 @@ import {
   Button,
   TextField,
   Divider,
-  Alert,
   Tabs,
   Tab,
   Card,
@@ -39,14 +38,47 @@ import {
   Download,
   Upload,
 } from '@mui/icons-material';
+import { useAuth } from '../context/AppContext';
+import { api } from '../utils/api';
+import { useApp } from '../context/AppContext';
 
-const SettingsPage: React.FC = () => {
-  const [emailNotifications, setEmailNotifications] = useState(true);
-  const [darkMode, setDarkMode] = useState(false);
-  const [autoBackup, setAutoBackup] = useState(true);
-  const [syncEnabled, setSyncEnabled] = useState(true);
+const SettingsPage: React.FC<{ setDarkMode: (dark: boolean) => void }> = ({ setDarkMode }) => {
+  const { logout } = useAuth();
+  const { setPracticeName } = useApp();
+  const [settings, setSettings] = useState({
+    fullName: '',
+    email: '',
+    phone: '',
+    practiceName: 'Thanya Therapy',
+    licenseNumber: '',
+    specialization: 'clinical-psychology',
+    emailNotifications: true,
+    darkMode: false,
+    language: 'en',
+    twoFactorEnabled: false,
+    autoBackup: true,
+    syncEnabled: true
+  });
   const [isUpdating, setIsUpdating] = useState(false);
   const [activeTab, setActiveTab] = useState(0);
+
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const data = await api.settings.get();
+        const savedDarkMode = localStorage.getItem('darkMode') === 'true';
+        setSettings({ ...data, darkMode: savedDarkMode });
+        setDarkMode(savedDarkMode);
+      } catch (error) {
+        console.error('Error loading settings:', error);
+        // Fallback to localStorage
+        const savedDarkMode = localStorage.getItem('darkMode') === 'true';
+        setSettings(prev => ({ ...prev, darkMode: savedDarkMode }));
+        setDarkMode(savedDarkMode);
+      }
+    };
+    loadSettings();
+  }, [setDarkMode]);
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setActiveTab(newValue);
@@ -54,10 +86,17 @@ const SettingsPage: React.FC = () => {
 
   const handleSaveSettings = async () => {
     setIsUpdating(true);
-    // TODO: Implement settings update
-    setTimeout(() => {
+    try {
+      await api.settings.update(settings);
+      setPracticeName(settings.practiceName);
+      localStorage.setItem('darkMode', settings.darkMode.toString());
+      setDarkMode(settings.darkMode);
+      // Show success message
+    } catch (error) {
+      console.error('Error saving settings:', error);
+    } finally {
       setIsUpdating(false);
-    }, 1000);
+    }
   };
 
   return (
@@ -102,14 +141,16 @@ const SettingsPage: React.FC = () => {
                   fullWidth
                   label="Full Name"
                   variant="outlined"
-                  defaultValue="Demo User"
+                  value={settings.fullName}
+                  onChange={(e) => setSettings(prev => ({ ...prev, fullName: e.target.value }))}
                   margin="normal"
                 />
                 <TextField
                   fullWidth
                   label="Email"
                   variant="outlined"
-                  defaultValue="demo@thanya.com"
+                  value={settings.email}
+                  onChange={(e) => setSettings(prev => ({ ...prev, email: e.target.value }))}
                   margin="normal"
                   type="email"
                 />
@@ -117,7 +158,8 @@ const SettingsPage: React.FC = () => {
                   fullWidth
                   label="Phone"
                   variant="outlined"
-                  defaultValue="+1 (555) 123-4567"
+                  value={settings.phone}
+                  onChange={(e) => setSettings(prev => ({ ...prev, phone: e.target.value }))}
                   margin="normal"
                 />
               </Box>
@@ -126,19 +168,24 @@ const SettingsPage: React.FC = () => {
                   fullWidth
                   label="Practice Name"
                   variant="outlined"
-                  defaultValue="Thanya Therapy"
+                  value={settings.practiceName}
+                  onChange={(e) => setSettings(prev => ({ ...prev, practiceName: e.target.value }))}
                   margin="normal"
                 />
                 <TextField
                   fullWidth
                   label="License Number"
                   variant="outlined"
-                  defaultValue="PSY123456"
+                  value={settings.licenseNumber}
+                  onChange={(e) => setSettings(prev => ({ ...prev, licenseNumber: e.target.value }))}
                   margin="normal"
                 />
                 <FormControl fullWidth margin="normal">
                   <InputLabel>Specialization</InputLabel>
-                  <Select defaultValue="clinical-psychology">
+                  <Select
+                    value={settings.specialization}
+                    onChange={(e) => setSettings(prev => ({ ...prev, specialization: e.target.value }))}
+                  >
                     <MenuItem value="clinical-psychology">Clinical Psychology</MenuItem>
                     <MenuItem value="counseling">Counseling Psychology</MenuItem>
                     <MenuItem value="family-therapy">Family Therapy</MenuItem>
@@ -170,8 +217,8 @@ const SettingsPage: React.FC = () => {
                   <ListItemSecondaryAction>
                     <Switch
                       edge="end"
-                      checked={emailNotifications}
-                      onChange={(e) => setEmailNotifications(e.target.checked)}
+                      checked={settings.emailNotifications}
+                      onChange={(e) => setSettings(prev => ({ ...prev, emailNotifications: e.target.checked }))}
                     />
                   </ListItemSecondaryAction>
                 </ListItem>
@@ -189,8 +236,13 @@ const SettingsPage: React.FC = () => {
                   <ListItemSecondaryAction>
                     <Switch
                       edge="end"
-                      checked={darkMode}
-                      onChange={(e) => setDarkMode(e.target.checked)}
+                      checked={settings.darkMode}
+                      onChange={(e) => {
+                        const newDarkMode = e.target.checked;
+                        setSettings(prev => ({ ...prev, darkMode: newDarkMode }));
+                        setDarkMode(newDarkMode);
+                        localStorage.setItem('darkMode', newDarkMode.toString());
+                      }}
                     />
                   </ListItemSecondaryAction>
                 </ListItem>
@@ -207,7 +259,10 @@ const SettingsPage: React.FC = () => {
                   />
                   <ListItemSecondaryAction>
                     <FormControl size="small" sx={{ minWidth: 120 }}>
-                      <Select defaultValue="en">
+                      <Select
+                        value={settings.language}
+                        onChange={(e) => setSettings(prev => ({ ...prev, language: e.target.value }))}
+                      >
                         <MenuItem value="en">English</MenuItem>
                         <MenuItem value="es">Español</MenuItem>
                         <MenuItem value="fr">Français</MenuItem>
@@ -320,8 +375,8 @@ const SettingsPage: React.FC = () => {
                   <ListItemSecondaryAction>
                     <Switch
                       edge="end"
-                      checked={autoBackup}
-                      onChange={(e) => setAutoBackup(e.target.checked)}
+                      checked={settings.autoBackup}
+                      onChange={(e) => setSettings(prev => ({ ...prev, autoBackup: e.target.checked }))}
                     />
                   </ListItemSecondaryAction>
                 </ListItem>
@@ -339,8 +394,8 @@ const SettingsPage: React.FC = () => {
                   <ListItemSecondaryAction>
                     <Switch
                       edge="end"
-                      checked={syncEnabled}
-                      onChange={(e) => setSyncEnabled(e.target.checked)}
+                      checked={settings.syncEnabled}
+                      onChange={(e) => setSettings(prev => ({ ...prev, syncEnabled: e.target.checked }))}
                     />
                   </ListItemSecondaryAction>
                 </ListItem>
@@ -410,12 +465,12 @@ const SettingsPage: React.FC = () => {
 
               <ListItem>
                 <ListItemText
-                  primary="Reset to Defaults"
-                  secondary="Reset all settings to their default values"
+                  primary="Sign Out"
+                  secondary="Sign out of your account and return to login"
                 />
                 <ListItemSecondaryAction>
-                  <Button variant="outlined" color="error">
-                    Reset
+                  <Button variant="outlined" color="error" onClick={logout}>
+                    Sign Out
                   </Button>
                 </ListItemSecondaryAction>
               </ListItem>
@@ -439,13 +494,6 @@ const SettingsPage: React.FC = () => {
             {isUpdating ? 'Saving...' : 'Save Changes'}
           </Button>
         </Box>
-
-        <Alert severity="info" sx={{ mt: 3 }}>
-          <Typography variant="body2">
-            <strong>Note:</strong> These settings will be fully functional once the backend is implemented.
-            Currently showing UI demonstration with sample data and interactions.
-          </Typography>
-        </Alert>
       </Box>
     </Container>
   );

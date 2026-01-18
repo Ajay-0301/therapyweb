@@ -1,4 +1,4 @@
-import React, { useState, useContext } from 'react';
+import React, { useState } from 'react';
 import {
   Container,
   Box,
@@ -12,7 +12,7 @@ import { useNavigate } from 'react-router-dom';
 import SearchBar from '../components/SearchBar';
 import ClientCard from '../components/ClientCard';
 import AddClientModal from '../components/AddClientModal';
-import { AppContext } from '../context/AppContext';
+import { useApp } from '../context/AppContext';
 
 const ClientsPage: React.FC = () => {
   const navigate = useNavigate();
@@ -20,11 +20,7 @@ const ClientsPage: React.FC = () => {
   const [filter, setFilter] = useState<'all' | 'active' | 'completed'>('all');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   
-  const context = useContext(AppContext);
-  if (!context) {
-    throw new Error('useApp must be used within an AppProvider');
-  }
-  const { clients, addClient } = context;
+  const { clients, addClient } = useApp();
 
   const handleFilterChange = (
     event: React.MouseEvent<HTMLElement>,

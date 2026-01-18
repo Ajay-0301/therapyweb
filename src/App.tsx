@@ -1,11 +1,11 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { AuthProvider, AppProvider } from './context/AppContext';
-import { theme } from './styles/theme';
+import { createAppTheme } from './styles/theme';
 import ProtectedRoute from './components/ProtectedRoute';
 
 // Pages
@@ -20,6 +20,15 @@ import ClientDetailPage from './pages/ClientDetailPage';
 import SessionDetailPage from './pages/SessionDetailPage';
 
 const App: React.FC = () => {
+  const [darkMode, setDarkMode] = useState(false);
+
+  useEffect(() => {
+    const savedDarkMode = localStorage.getItem('darkMode') === 'true';
+    setDarkMode(savedDarkMode);
+  }, []);
+
+  const theme = createAppTheme(darkMode ? 'dark' : 'light');
+
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
@@ -47,7 +56,7 @@ const App: React.FC = () => {
                   {/* Implemented routes */}
                   <Route path="calendar" element={<CalendarPage />} />
                   <Route path="insights" element={<InsightsPage />} />
-                  <Route path="settings" element={<SettingsPage />} />
+                  <Route path="settings" element={<SettingsPage setDarkMode={setDarkMode} />} />
                 </Route>
               </Routes>
             </Router>

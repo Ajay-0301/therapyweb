@@ -1,4 +1,4 @@
-import React, { useState, useContext, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Container,
@@ -12,7 +12,7 @@ import {
   ListItemText,
   Divider,
 } from '@mui/material';
-import { AppContext } from '../context/AppContext';
+import { useApp } from '../context/AppContext';
 import { Session } from '../types';
 import AddSessionModal from '../components/AddSessionModal';
 import EventTag from '../components/EventTag';
@@ -36,11 +36,7 @@ const CalendarPage: React.FC = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const context = useContext(AppContext);
-  if (!context) {
-    throw new Error('useApp must be used within an AppProvider');
-  }
-  const { clients, sessions, addSession } = context;
+  const { clients, allSessions, addSession, setSelectedClient } = useApp();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -132,7 +128,7 @@ const CalendarPage: React.FC = () => {
         currentDate.getMonth() === today.getMonth() &&
         currentDate.getFullYear() === today.getFullYear();
       // sessions that have followUp on this day (parse dates as local YYYY-MM-DD)
-      const followUpSessionsForDay = sessions && sessions.filter((session: Session) => {
+      const followUpSessionsForDay = allSessions && allSessions.filter((session: Session) => {
         if (!session.followUp?.date) return false;
         const followUpDate = parseDateLocal(session.followUp.date);
         if (!followUpDate) return false;
@@ -161,7 +157,7 @@ const CalendarPage: React.FC = () => {
             <Typography>{day}</Typography>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.3, width: '100%' }}>
               {/* Regular sessions */}
-              {sessions && sessions.filter((session: Session) => {
+              {allSessions && allSessions.filter((session: Session) => {
               const sessionDate = parseDateLocal(session.date);
               if (!sessionDate) return false;
               return (
@@ -211,7 +207,7 @@ const CalendarPage: React.FC = () => {
               </Box>
             ))}
               {/* Follow-up sessions */}
-              {sessions && sessions.filter((session: Session) => {
+              {allSessions && allSessions.filter((session: Session) => {
               if (!session.followUp?.date) return false;
               const followUpDate = parseDateLocal(session.followUp.date);
               if (!followUpDate) return false;
@@ -231,8 +227,8 @@ const CalendarPage: React.FC = () => {
                       e.stopPropagation();
                       const client = clients.find(c => c.id === session.clientId);
                       if (client) {
-                        if (context.setSelectedClient) {
-                          context.setSelectedClient({
+                        if (setSelectedClient) {
+                          setSelectedClient({
                             ...client,
                             upcomingSession: session.followUp?.date || client.upcomingSession
                           });
@@ -252,8 +248,8 @@ const CalendarPage: React.FC = () => {
                       e.stopPropagation();
                       const client = clients.find(c => c.id === session.clientId);
                       if (client) {
-                        if (context.setSelectedClient) {
-                          context.setSelectedClient({
+                        if (setSelectedClient) {
+                          setSelectedClient({
                             ...client,
                             upcomingSession: session.followUp?.date || client.upcomingSession
                           });
@@ -343,8 +339,8 @@ const CalendarPage: React.FC = () => {
             <List>
               {(() => {
                 const selectedDateStr = selectedDate.toISOString().split('T')[0];
-                const regularSessions = sessions.filter(s => s.date === selectedDateStr);
-                const followUpSessions = sessions.filter(s => s.followUp?.date === selectedDateStr);
+                const regularSessions = allSessions.filter(s => s.date === selectedDateStr);
+                const followUpSessions = allSessions.filter(s => s.followUp?.date === selectedDateStr);
                 
                 if (regularSessions.length === 0 && followUpSessions.length === 0) {
                   return (

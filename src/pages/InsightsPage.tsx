@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Container,
   Box,
@@ -32,13 +32,51 @@ import {
   ShowChart,
   Refresh,
 } from '@mui/icons-material';
+import { api } from '../utils/api';
 
 const InsightsPage: React.FC = () => {
-  const [isLoading] = useState(false);
-  const [timeRange, setTimeRange] = useState(0);
+  const [insightsData, setInsightsData] = useState({
+    metrics: {
+      totalSessions: 0,
+      activeClients: 0,
+      totalClients: 0,
+      avgSessionTime: 0,
+      completionRate: 0
+    },
+    trends: {},
+    clientProgress: [],
+    patterns: [],
+    treatmentInsights: {
+      recommendedApproach: '',
+      confidence: 0,
+      alternatives: []
+    }
+  });
+  const [isLoading, setIsLoading] = useState(true);
+  const [timeRange, setTimeRange] = useState(30); // days
+
+  useEffect(() => {
+    const loadInsights = async () => {
+      try {
+        const data = await api.insights.get(timeRange);
+        setInsightsData(data);
+      } catch (error) {
+        console.error('Error loading insights:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadInsights();
+  }, [timeRange]);
 
   const handleTimeRangeChange = (event: React.SyntheticEvent, newValue: number) => {
-    setTimeRange(newValue);
+    const days = [7, 30, 90, 365][newValue];
+    setTimeRange(days);
+  };
+
+  const getTabValue = () => {
+    const tabMap = { 7: 0, 30: 1, 90: 2, 365: 3 };
+    return tabMap[timeRange as keyof typeof tabMap] || 1;
   };
 
   return (
@@ -58,7 +96,17 @@ const InsightsPage: React.FC = () => {
               variant="outlined"
               color="primary"
               startIcon={<Refresh />}
-              onClick={() => {/* TODO: Refresh functionality */}}
+              onClick={async () => {
+                setIsLoading(true);
+                try {
+                  const data = await api.insights.get(timeRange);
+                  setInsightsData(data);
+                } catch (error) {
+                  console.error('Error refreshing insights:', error);
+                } finally {
+                  setIsLoading(false);
+                }
+              }}
             >
               Refresh
             </Button>
@@ -73,7 +121,7 @@ const InsightsPage: React.FC = () => {
           </Box>
         </Box>
 
-        <Tabs value={timeRange} onChange={handleTimeRangeChange} sx={{ mb: 3 }}>
+        <Tabs value={getTabValue()} onChange={handleTimeRangeChange} sx={{ mb: 3 }}>
           <Tab label="Last 7 Days" />
           <Tab label="Last 30 Days" />
           <Tab label="Last 3 Months" />
@@ -98,7 +146,7 @@ const InsightsPage: React.FC = () => {
                   <Typography variant="h6" color="primary">Sessions</Typography>
                   <BarChart color="primary" />
                 </Box>
-                <Typography variant="h3" sx={{ mb: 1 }}>24</Typography>
+                <Typography variant="h3" sx={{ mb: 1 }}>{insightsData.metrics.totalSessions}</Typography>
                 <Typography variant="body2" color="success.main">+12% from last period</Typography>
               </CardContent>
             </Card>
@@ -108,7 +156,7 @@ const InsightsPage: React.FC = () => {
                   <Typography variant="h6" color="primary">Active Clients</Typography>
                   <Psychology color="primary" />
                 </Box>
-                <Typography variant="h3" sx={{ mb: 1 }}>8</Typography>
+                <Typography variant="h3" sx={{ mb: 1 }}>{insightsData.metrics.activeClients}</Typography>
                 <Typography variant="body2" color="success.main">+2 new this period</Typography>
               </CardContent>
             </Card>
@@ -118,7 +166,7 @@ const InsightsPage: React.FC = () => {
                   <Typography variant="h6" color="primary">Avg. Session Time</Typography>
                   <Timeline color="primary" />
                 </Box>
-                <Typography variant="h3" sx={{ mb: 1 }}>52m</Typography>
+                <Typography variant="h3" sx={{ mb: 1 }}>{insightsData.metrics.avgSessionTime}m</Typography>
                 <Typography variant="body2" color="warning.main">+5m from average</Typography>
               </CardContent>
             </Card>
@@ -128,7 +176,7 @@ const InsightsPage: React.FC = () => {
                   <Typography variant="h6" color="primary">Completion Rate</Typography>
                   <TrendingUp color="primary" />
                 </Box>
-                <Typography variant="h3" sx={{ mb: 1 }}>87%</Typography>
+                <Typography variant="h3" sx={{ mb: 1 }}>{insightsData.metrics.completionRate}%</Typography>
                 <Typography variant="body2" color="success.main">+3% improvement</Typography>
               </CardContent>
             </Card>
@@ -177,8 +225,9 @@ const InsightsPage: React.FC = () => {
                       AI will identify recurring themes and behavioral patterns across sessions.
                     </Typography>
                     <Box sx={{ mt: 2, display: 'flex', gap: 1 }}>
-                      <Chip size="small" label="Anxiety" sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: 'inherit' }} />
-                      <Chip size="small" label="Stress" sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: 'inherit' }} />
+                      {insightsData.patterns.map((pattern, index) => (
+                        <Chip key={index} size="small" label={pattern} sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: 'inherit' }} />
+                      ))}
                     </Box>
                   </CardContent>
                 </Card>
@@ -193,7 +242,7 @@ const InsightsPage: React.FC = () => {
                     </Typography>
                     <Box sx={{ mt: 2 }}>
                       <Typography variant="caption">Recommended Approach</Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 'bold' }}>CBT + Mindfulness</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 'bold' }}>{insightsData.treatmentInsights.recommendedApproach}</Typography>
                     </Box>
                   </CardContent>
                 </Card>

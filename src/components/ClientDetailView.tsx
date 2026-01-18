@@ -12,6 +12,10 @@ import {
   IconButton,
   Snackbar,
   Alert,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from '@mui/material';
 import { Edit as EditIcon, Save as SaveIcon, Delete as DeleteIcon } from '@mui/icons-material';
 import { Client, Session } from '../types';
@@ -25,7 +29,7 @@ interface ClientDetailViewProps {
   sessions: Session[];
   onUpdateClient: (updatedClient: Client) => void;
   onUpdateSession: (sessionId: string, notes: string, followUp: { date: string; notes: string }) => void;
-  onAddSession: (session: Omit<Session, 'id'>) => string;
+  onAddSession: (session: Omit<Session, 'id'>) => Promise<string>;
   onDeleteSession?: (sessionId: string) => void;
 }
 
@@ -48,6 +52,8 @@ const ClientDetailView: React.FC<ClientDetailViewProps> = ({
   const [isEditingCount, setIsEditingCount] = useState(false);
   const [countInput, setCountInput] = useState<number | ''>(client.sessionCount ?? sessions.filter(s => s.clientId === client.id).length);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [sessionToDelete, setSessionToDelete] = useState<string | null>(null);
   const [createdSessionId, setCreatedSessionId] = useState<string | null>(null);
   const navigate = useNavigate();
 
@@ -101,7 +107,7 @@ const ClientDetailView: React.FC<ClientDetailViewProps> = ({
     setIsEditingCount(false);
   };
 
-  const handleSessionNotesSave = () => {
+  const handleSessionNotesSave = async () => {
     if (!followUpDate) {
       alert('Please select a follow-up date');
       return;
@@ -145,7 +151,7 @@ const ClientDetailView: React.FC<ClientDetailViewProps> = ({
     });
 
     // Add the new session and capture id for undo
-    const createdId = onAddSession(newSession);
+    const createdId = await onAddSession(newSession);
 
     // Show undo snackbar
     setCreatedSessionId(createdId);
@@ -240,6 +246,24 @@ const ClientDetailView: React.FC<ClientDetailViewProps> = ({
               fullWidth
               value={editedClient.phone || ''}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditedClient({ ...editedClient, phone: e.target.value })}
+              disabled={!isEditing}
+            />
+          </Box>
+          <Box sx={{ flex: '1 1 300px' }}>
+            <TextField
+              label="Gender"
+              fullWidth
+              value={editedClient.gender || ''}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditedClient({ ...editedClient, gender: e.target.value })}
+              disabled={!isEditing}
+            />
+          </Box>
+          <Box sx={{ flex: '1 1 300px' }}>
+            <TextField
+              label="Marital Status"
+              fullWidth
+              value={editedClient.maritalStatus || ''}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditedClient({ ...editedClient, maritalStatus: e.target.value })}
               disabled={!isEditing}
             />
           </Box>
@@ -480,9 +504,8 @@ const ClientDetailView: React.FC<ClientDetailViewProps> = ({
                     size="small"
                     sx={{ position: 'absolute', right: 8, top: 8 }}
                     onClick={() => {
-                      if (!onDeleteSession) return;
-                      const ok = window.confirm('Delete this session? This cannot be undone.');
-                      if (ok) onDeleteSession(session.id);
+                      setSessionToDelete(session.id);
+                      setDeleteDialogOpen(true);
                     }}
                     aria-label={`delete-session-${session.id}`}
                   >
@@ -548,6 +571,39 @@ const ClientDetailView: React.FC<ClientDetailViewProps> = ({
           )}
         </Box>
       </Paper>
+
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={() => setDeleteDialogOpen(false)}
+        aria-labelledby="delete-session-dialog-title"
+      >
+        <DialogTitle id="delete-session-dialog-title">
+          Confirm Delete
+        </DialogTitle>
+        <DialogContent>
+          <Typography>
+            Are you sure you want to delete this session? This cannot be undone.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteDialogOpen(false)} color="inherit">
+            Cancel
+          </Button>
+          <Button
+            onClick={() => {
+              if (onDeleteSession && sessionToDelete) {
+                onDeleteSession(sessionToDelete);
+              }
+              setDeleteDialogOpen(false);
+              setSessionToDelete(null);
+            }}
+            color="error"
+            variant="contained"
+          >
+            Delete Session
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

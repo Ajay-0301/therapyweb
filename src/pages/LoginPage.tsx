@@ -9,10 +9,15 @@ import {
   Paper,
   Avatar,
   CircularProgress,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AppContext';
+import { api } from '../utils/api';
 import { LockOutlined } from '@mui/icons-material';
 
 const StyledContainer = styled(Container)(({ theme }) => ({
@@ -96,6 +101,10 @@ const LoginPage: React.FC = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isRegistering, setIsRegistering] = useState(false);
+  const [name, setName] = useState('');
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [dialogMessage, setDialogMessage] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -103,12 +112,19 @@ const LoginPage: React.FC = () => {
     setIsLoading(true);
 
     try {
-      await login(email, password);
-      setTimeout(() => {
+      if (isRegistering) {
+        await api.auth.register(email, password, name);
+        setError('Registration successful! Please log in.');
+        setIsRegistering(false);
+        setName('');
+      } else {
+        await login(email, password);
         navigate('/dashboard');
-      }, 500);
-    } catch (err) {
-      setError('Please use demo@thanya.com / demo123 to log in');
+      }
+    } catch (err: any) {
+      const errorMessage = err.message || 'Authentication failed. Please check your credentials.';
+      setDialogMessage(errorMessage);
+      setDialogOpen(true);
     } finally {
       setIsLoading(false);
     }
@@ -121,17 +137,32 @@ const LoginPage: React.FC = () => {
           <LockOutlined />
         </StyledAvatar>
         <Typography component="h1" variant="h4" sx={{ mb: 1, fontWeight: 600 }}>
-          Welcome Back
+          {isRegistering ? 'Create Account' : 'Welcome Back'}
         </Typography>
         <Typography variant="body1" color="text.secondary" align="center" sx={{ mb: 3 }}>
-          Sign in to your therapy management dashboard
+          {isRegistering ? 'Sign up for your therapy management dashboard' : 'Sign in to your therapy management dashboard'}
         </Typography>
 
         <Form onSubmit={handleSubmit}>
           {error && (
-            <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>
+            <Alert severity={error.includes('successful') ? 'success' : 'error'} sx={{ mb: 3, borderRadius: 2 }}>
               {error}
             </Alert>
+          )}
+
+          {isRegistering && (
+            <StyledTextField
+              margin="normal"
+              required
+              fullWidth
+              id="name"
+              label="Full Name"
+              name="name"
+              autoComplete="name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              disabled={isLoading}
+            />
           )}
 
           <StyledTextField
@@ -142,7 +173,7 @@ const LoginPage: React.FC = () => {
             label="Email Address"
             name="email"
             autoComplete="email"
-            autoFocus
+            autoFocus={!isRegistering}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             disabled={isLoading}
@@ -170,24 +201,41 @@ const LoginPage: React.FC = () => {
             disabled={isLoading}
             startIcon={isLoading ? <CircularProgress size={20} color="inherit" /> : null}
           >
-            {isLoading ? 'Signing in...' : 'Sign In'}
+            {isLoading ? (isRegistering ? 'Creating Account...' : 'Signing in...') : (isRegistering ? 'Create Account' : 'Sign In')}
           </StyledButton>
 
-          <Box sx={{ mt: 2, mb: 3 }}>
-            <Typography variant="body2" color="text.secondary" align="center">
-              <strong>Demo Credentials:</strong><br />
-              Email: <code>demo@thanya.com</code><br />
-              Password: <code>demo123</code>
-            </Typography>
+          <Box sx={{ mt: 2, textAlign: 'center' }}>
+            <Button
+              onClick={() => {
+                setIsRegistering(!isRegistering);
+                setError('');
+                setName('');
+                setEmail('');
+                setPassword('');
+              }}
+              sx={{ textTransform: 'none' }}
+            >
+              {isRegistering ? 'Already have an account? Sign In' : "Don't have an account? Sign Up"}
+            </Button>
           </Box>
 
-          <Alert severity="info" sx={{ borderRadius: 2 }}>
+          <Alert severity="info" sx={{ borderRadius: 2, mt: 2 }}>
             <Typography variant="body2">
-              <strong>Note:</strong> This is a frontend-only version. Backend integration is planned for the next phase.
+              <strong>Note:</strong> Full-stack therapy management system with permanent data storage.
             </Typography>
           </Alert>
         </Form>
       </StyledPaper>
+
+      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)}>
+        <DialogTitle>Error</DialogTitle>
+        <DialogContent>
+          <Typography>{dialogMessage}</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDialogOpen(false)}>OK</Button>
+        </DialogActions>
+      </Dialog>
     </StyledContainer>
   );
 };

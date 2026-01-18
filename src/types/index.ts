@@ -17,6 +17,18 @@ export interface Client {
   occupation?: string;
   chiefComplaints?: string;
   hopi?: string; // History of Presenting Illness
+  gender?: string;
+  maritalStatus?: string;
+}
+
+export interface CalendarClient {
+  id: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  occupation?: string;
+  age?: number;
+  sessionCount?: number;
 }
 
 export interface Session {

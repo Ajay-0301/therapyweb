@@ -23,6 +23,8 @@ const AddClientModal: React.FC<AddClientModalProps> = ({ open, onClose, onAdd })
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [clientId, setClientId] = useState('');
+  const [gender, setGender] = useState('');
+  const [maritalStatus, setMaritalStatus] = useState('');
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -60,6 +62,8 @@ const AddClientModal: React.FC<AddClientModalProps> = ({ open, onClose, onAdd })
       age: Number(age),
       email: email || undefined,
       phone: phone || undefined,
+      gender: gender || undefined,
+      maritalStatus: maritalStatus || undefined,
     });
 
     // Reset form
@@ -68,6 +72,8 @@ const AddClientModal: React.FC<AddClientModalProps> = ({ open, onClose, onAdd })
     setEmail('');
     setPhone('');
     setClientId('');
+    setGender('');
+    setMaritalStatus('');
     setError(null);
     onClose();
   };
@@ -123,6 +129,20 @@ const AddClientModal: React.FC<AddClientModalProps> = ({ open, onClose, onAdd })
               onChange={(e) => setPhone(e.target.value)}
               fullWidth
               helperText="10-digit number"
+            />
+            <TextField
+              label="Gender"
+              value={gender}
+              onChange={(e) => setGender(e.target.value)}
+              fullWidth
+              placeholder="e.g., Male, Female, Other"
+            />
+            <TextField
+              label="Marital Status"
+              value={maritalStatus}
+              onChange={(e) => setMaritalStatus(e.target.value)}
+              fullWidth
+              placeholder="e.g., Single, Married, Divorced"
             />
           </Box>
         </DialogContent>

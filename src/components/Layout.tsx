@@ -25,6 +25,7 @@ import {
 } from '@mui/icons-material';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import { styled } from '@mui/material/styles';
+import { useApp } from '../context/AppContext';
 
 const drawerWidth = 280;
 
@@ -123,6 +124,7 @@ const Layout: React.FC = () => {
   const location = useLocation();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [open, setOpen] = useState(!isMobile);
+  const { practiceName } = useApp();
 
   const handleDrawerToggle = () => {
     setOpen(!open);
@@ -143,7 +145,7 @@ const Layout: React.FC = () => {
           </IconButton>
           <EcoIcon sx={{ mr: 1, fontSize: 28 }} />
           <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 600 }}>
-            Thanya Therapy Notes
+            {practiceName} Notes
           </Typography>
         </Toolbar>
       </StyledAppBar>
@@ -158,10 +160,10 @@ const Layout: React.FC = () => {
           <EcoIcon sx={{ fontSize: 32, mr: 1 }} />
           <Box>
             <Typography variant="h6" sx={{ fontWeight: 600, lineHeight: 1.2 }}>
-              Thanya
+              {practiceName.split(' ')[0]}
             </Typography>
             <Typography variant="caption" sx={{ opacity: 0.8 }}>
-              Therapy Notes
+              {practiceName.split(' ').slice(1).join(' ')} Notes
             </Typography>
           </Box>
         </LogoBox>
