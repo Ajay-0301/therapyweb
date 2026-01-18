@@ -30,6 +30,11 @@ app.use('/api/sessions', sessions_1.default);
 app.use('/api/settings', settings_1.default);
 app.use('/api/insights', insights_1.default);
 app.use('/api/calendar-clients', calendarClients_1.default);
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-});
+// For Vercel serverless functions
+exports.default = app;
+// For local development
+if (require.main === module) {
+    app.listen(PORT, () => {
+        console.log(`Server running on port ${PORT}`);
+    });
+}
